@@ -1,0 +1,270 @@
+*{
+    margin: 0;
+    padding: 0;
+    font-family:Helvetica, Arial;
+}
+ul,li,dt,dd{
+    list-style: none;
+}
+.spaCon{
+    width: 1000px;
+    margin: 0 auto;
+    position: relative;
+}
+
+header{
+    width:100%;
+    left: 0;
+    z-index: 1001;
+}
+header img{
+    margin-right: 15px;
+    margin-left: 16px;
+    cursor: pointer;
+}
+header li{
+    float: left;
+    margin-left: 30px;
+    color: #ffffff;
+    font-size: 16px;
+    line-height: 71px;
+    cursor: pointer;
+    position: relative;
+}
+header li span{
+    display: block;
+    width: 100%;
+    height: 2px;
+    position: absolute;
+    bottom: 18px;
+    left: 0;
+}
+header li.on span,header li:hover span{
+    background: #fff;
+}
+.mainNav{
+    position: absolute;
+    top: 64px;
+}
+.subNav{
+    position: fixed;
+    top: 0;
+    background: #0469F5;
+    display: none;
+    opacity: 0.8;
+}
+
+
+.spaSec2 .spaCon2{
+    width: 963px;
+    font-size: 16px;
+    color: #666666;
+    margin: 0 auto;
+}
+.spaSec2 .alScroll{
+    width: 756px;
+    height: 232px;
+    margin-left: 140px;
+    position: relative;
+}
+.spaSec2 .bd,.spaSec2 .bd li{
+    width: 100%;
+    height: 220px;
+    overflow: hidden;
+    zoom:1; 
+}
+.alScroll .bd li{ 
+    overflow:hidden; 
+    float:left;
+}
+.spaSec2 .bd div{
+    font-family:Helvetica;
+    width: 354px;
+    /* text-align: justify; */
+    line-height: 27px;
+}
+.spaSec2 .bd span{
+    color: #0C75EF;
+}
+
+.pageState{
+    display:none;
+}
+.alScroll .hd .prev,.alScroll .hd .next{
+    display:block;
+    width:32px;
+    height:32px;
+    cursor:pointer;
+    position:absolute;
+    top:45px;
+}
+.alScroll .hd .prev{
+    background:url("../images/arrow1.jpg") no-repeat;
+    left:-71px;
+}
+.alScroll .hd .next{
+    background:url("../images/arrow2.jpg") no-repeat;
+    right:-71px;
+}
+.alScroll .hd .prev:hover{
+    background:url("../images/arrow3.png") no-repeat;
+}
+.alScroll .hd .next:hover{
+    background:url("../images/arrow4.jpg") no-repeat;
+}
+.alScroll .hd .prevStop:hover{
+    background:url("../images/arrow1.jpg") no-repeat;
+}
+.alScroll .hd .nextStop:hover{
+    background:url("../images/arrow2.jpg") no-repeat;
+}
+
+.alScroll .hd ul{
+    overflow:hidden;
+    zoom:1;
+    position:absolute;
+    bottom:-20px;
+    width:100%;
+    text-align: center;
+}
+.alScroll .hd ul li{
+    width:8px;
+    height:8px;
+    display: inline-block;
+    margin:0 5px;
+    text-indent:-999px;
+    cursor:pointer;
+    background:#E2E2E2;
+    border-radius:50%;
+}
+.alScroll .hd ul li.on{
+    background:#03B8FF;
+    border-radius:4px;
+    width:18px;
+}
+
+
+.spaSec4 .bd{
+    width:281px;
+    height:499px;
+    overflow:hidden;
+    position:absolute;
+    top:58px;
+    left:50%;
+    margin-left:-140px;
+    background: #f6f6f6;
+}
+.spaSec4 .bd li{
+    width:280px;
+    height:499px;
+    float:left;
+}
+.spaSec4 .bd li img{
+    width:280px;
+    height:499px;
+    display:block;
+}
+
+.img1,.img2,.img4,.img5,.img6,.img7,.img8{
+    width: 100%;
+    height: 699px;
+}
+.img1{
+    background: url("../images/allspark_01.png") no-repeat center top;
+}
+.img2{
+    background: url("../images/allspark_02.png") no-repeat center top;
+}
+.img3{
+    width: 100%;
+    height: 382px;
+    padding-top: 318px;
+    background: url("../images/allspark_03.png") no-repeat center top;
+    position: relative;
+}
+.img4{
+    background: url("../images/allspark_04.png") no-repeat center top;
+}
+.img5{
+    background: url("../images/allspark_05.png") no-repeat center top;
+}
+.img6{
+    background: url("../images/allspark_06.png") no-repeat center top;
+}
+.img7{
+    background: url("../images/allspark_07.png") no-repeat center top;
+}
+.img8{
+    background: url("../images/allspark_08.png") no-repeat center top;
+}
+.img9{
+    width: 100%;
+    height: 1361px;
+    background: url("../images/allspark_09.png?v1") no-repeat center top;
+}
+.img10{
+    width: 100%;
+    height: 574px;
+    background: url("../images/allspark_10.png?v1") no-repeat center top;
+}
+
+.icoHeader{
+    width: 100%;
+    height: 300px;
+    background: url("../images/ico_intro_bg.jpg") no-repeat center top;
+    background-size: 100% 100%;
+}
+
+.icoHeaderWrap{
+    width: 1100px;
+    height: 300px;
+    background: url("../images/ico_intro_wrap.png") no-repeat center top;
+    background-size: 100% 100%;
+    margin: 0 auto;
+    position: relative;
+}
+.icoLink{
+    position: absolute;
+    top: 40px;
+    right: 40px;
+    font-size: 18px;
+    color: #fff;
+    text-decoration: none;
+}
+.icoWrap{
+    width: 1100px;
+    margin: 40px auto 0 auto;
+    background: #fff;
+    padding: 40px;
+    box-sizing: border-box;
+}
+.icoFirst{
+    font-size: 18px;
+    line-height: 30px;
+}
+.icoCharts{
+    width: 530px;
+    height: 277px;
+    background: url("../images/ico_charts.jpg") no-repeat;
+    background-size: 100% 100%;
+    margin: 40px 0;
+}
+
+.icoTable{
+    width: 565px;
+}
+.icoTable tr td{
+    height: 50px;
+    text-align: center;
+    
+}
+.icoTable tr td.one{
+    background: #35468d;
+    color: #fff;
+}
+.icoTable tr td.two{
+    background: #d4dcff;
+}
+.icoTable tr td.three{
+    background: #f5f7ff;
+}
