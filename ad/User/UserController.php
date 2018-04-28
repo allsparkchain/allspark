@@ -864,25 +864,62 @@ class UserController extends Controller
     /**
      * 绑定银行卡
      * @Post("/bindBankCard", as="s_user_bindBankCard")
+     * @param int $bind_realname 真实姓名
+     * @param int $code 短信验证码
+     * @param int $order_number
+     * @param int $bind_idnumber 身份证号码
+     * @param int $bind_banknumber 银行卡号
+     * @param int $bind_mobile 手机号码
+     * @param int $bank_relative 银行编号
+     * @param int $bank_id 银行编号
+     * @param int $province_id 支行省份
+     * @param int $city_id 支行城市
+     * @param int $bank_name 支行名称
+     * @param string $sub_branch_id 支行编号
      */
     public function bindBankCard(Request $request) {
         try {
-            $realname = $request->get("bind_realname",'');
-            $idnumber = $request->get("bind_idnumber",'');
-            $bind_banknumber = $request->get("bind_banknumber",'');
-            $bind_mobile = $request->get("bind_mobile",'');
-            $bank_relative = $request->get("bank_relative",0);
+            $realname = $request->get('bind_realname', '');
+            $code = $request->get('code', '');
+            $idnumber = $request->get('bind_idnumber', '');
+            $bind_banknumber = $request->get('bind_banknumber', '');
+            $bind_mobile = $request->get('bind_mobile', '');
+            $bank_relative = $request->get('bank_relative', 0);
+            $bank_id = $request->get('bank_id', '');
+            $province_id = $request->get('province_id', 0);
+            $city_id = $request->get('city_id', 0);
+            $bank_name = $request->get('bank_name', '');
+            $sub_branch_id = $request->get('sub_branch_id', '');
 
-            if(strlen($realname)<=0 || strlen($idnumber)<=0 || strlen($bind_banknumber)<=0 || strlen($bind_mobile)<=0){
-                return new JsonResponse(['status'=>333,'message'=>'传递参数非法或者缺少参数']);
+            $validator = \Validator::make($request->all(), trans('custom_validator.bindBankCard.rules'),
+                trans('custom_validator.bindBankCard.message'));
+            if ($validator->fails()) {
+                return new JsonResponse(['status'=>40, 'message'=> current($validator->errors()->all())]);
             }
+
+            //验证短信验证码
+            $order_number = json_decode(session('change'), true);
+            $order_number = $order_number ? $order_number['order_number'] : '';
+            $post = Curl::post('utils/message/verificationSms', [
+                'order_number' => $order_number,
+                'code' => $code,
+                'mobile' => $bind_mobile,
+                'type' => 9,
+            ]);
+            if ($post['status'] != 200) return new JsonResponse($post);
+
+            //绑定银行卡
+            if (! $sub_branch_id) $sub_branch_id = $bank_id . $province_id . $city_id;
+
             $post = Curl::post('/user/bindBankCard', [
                 'realname' => $realname,
                 'idnumber' => $idnumber,
                 'banknumber' => $bind_banknumber,
                 'mobile' => $bind_mobile,
                 'bank_relative'=>$bank_relative,
-                'uid' => $this->getUserId()
+                'uid' => $this->getUserId(),
+                'sub_branch_name' => $bank_name,
+                'sub_branch_id' => $sub_branch_id,
             ]);
             $aa['ids'] = $post['data']['id'];
             $aa['banknumbs'] = $post['data']['banknumber'];
@@ -895,7 +932,6 @@ class UserController extends Controller
                 "message"=>$e->getMessage(),
             ]);
         }
-
     }
 
     /**
