@@ -414,7 +414,7 @@ class ArticleController
             return $this->respone($e->getCode(), $e->getMessage());
         }
     }
-
+   
     /**
      * 图文编辑提交
      * @route POST /editImgTitle
