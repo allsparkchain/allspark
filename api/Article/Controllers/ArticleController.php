@@ -414,7 +414,7 @@ class ArticleController
             return $this->respone($e->getCode(), $e->getMessage());
         }
     }
-   
+
     /**
      * 图文编辑提交
      * @route POST /editImgTitle
@@ -507,5 +507,70 @@ class ArticleController
                 "message"=>$e->getMessage(),
             ]);
         }
+    }
+
+    /**
+     *
+     * @Post("/articleAdd", as="s_article_add")
+     * @Middleware("auth")
+     */
+    public function articleAdd(Request $request) {
+        try {
+
+            $paramer['id'] = $request->get('id', 0);
+            $paramer['name'] = $request->get('name');
+            $paramer['content'] = $request->get('content');
+            $paramer['article_product_id'] = $request->get('product_id');
+            $paramer['spiltway'] = 3;
+            $paramer['author'] = $this->getUserId();
+
+            $paramer['article_category_id'] = $request->get('article_category_id',0);
+
+            $status = $request->get('status');
+
+
+            if($status==1){
+                $paramer['status'] = 3;//发布
+            }else{
+                $paramer['status'] = 5;//草稿
+            }
+
+            if($paramer['id']){
+                $data = Curl::post('/article/editArticle',
+                    $paramer
+                );
+            }else{
+                $data = Curl::post('/article/add',
+                    $paramer
+                );
+            }
+
+
+
+            if($data['status']==200){
+                $phpPath = config('params.php_path');
+                shell_exec("nohup ".$phpPath.' '.public_path('../').'artisan command:ossUploadStript '.$data['data'].' >> /tmp/out.file 2>&1  &');
+            }
+
+            return new JsonResponse($data);
+        } catch (ApiException $e) {
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+            ]);
+        }
+    }
+
+    private function getUserId() {
+        return \Auth::getUser()->getAuthIdentifier();
+
+    }
+
+    private function getUserName() {
+        return \Auth::getUser()->getUserMobile();
+    }
+
+    private function getRecommendCode() {
+        return \Auth::getUser()->getRecommendCode();
     }
 }
