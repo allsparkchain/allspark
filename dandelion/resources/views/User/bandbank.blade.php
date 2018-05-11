@@ -15,32 +15,26 @@
         <span>每笔收益45天后将结算至余额</span>
         <p>累计产生收益总额&nbsp;&nbsp;<span>@{{all_commission_profit|numberFormat}}</span></p>
     </div> -->
+    <div class="accountTitle">
+        账户总览
+    </div>
     <div class="accountNotal">
-        <div >
-            <span>余额</span><br>@{{available_amount|numberFormat}}
-            
+        <div class="pgy_orge">
+            <span>未结算收益</span><br>@{{available_amount|numberFormat}}
+            <i class="pgy_need_tix"><a href="{{route('s_user_withdrawPage')}}">我要提现</a></i>
         </div>
-        <div ><span>未结算收益</span><br>@{{unsettled_amount|numberFormat}}</div>
-        <!-- <div><span>累计佣金</span><br>@{{all_commission_profit|numberFormat}}</div> -->
-        <div style="width:240px;border-left:1px solid #EAEAEA;height:65px">
-        <i class="pgy_need_tix"><a href="{{route('s_user_withdrawPage')}}">我要提现</a></i>
-        </div>
+        <div class="pgy_orge"><span>未结算收益</span><br>@{{unsettled_amount|numberFormat}}</div>
+        <div><span>累计收益</span><br>@{{all_commission_profit|numberFormat}}</div>
     </div>
 
-    <div class="ggzdl_accountChart" >
+    <div class="ggzdl_accountChart">
         <div class="ggzdl_chartTitle">
-            <span :class="{on:showBy===1}" @click="getCharts(1)">近7日收益数据</span><span :class="{on:showBy===2}"  style="padding-left:39px;" @click="getCharts(2)">月度数据</span>
+            <span class="on">近7日数据视图</span><span  style="padding-left:39px;">月度数据</span>
         </div>
         <div id="ggzdl_chart" style="width: 890px;height:400px; margin: 0 auto 0 auto;"></div>
-       
-    </div>
-    <div class="nowithData" style="display:none">
-        <img src="/image/nullpic.jpg" alt="">
-        <p>你还没有相关数据，<a href="{{route('s_goods_lists')}}">写作</a>或<a href="{{route('s_aricle_lists')}}">推广</a>都可以获得收益哦!</p>
     </div>
 </div>
 @endsection
-
 
 
 
@@ -74,7 +68,6 @@
                 account:[],
                 options:{},
                 myChart:null,
-                showBy:1,
             },
             created:function(){
                 var _this=this;
@@ -99,20 +92,12 @@
                                 _this.day_commission_account=res.data.day_commission_account;
                                 _this.today_nums=res.data.today_nums;
                                 _this.available_amount=res.data.available_amount;
-
-                                if(_this.available_amount==0 && _this.unsettled_amount==0){
-                                    $('.nowithData').show();
-                                    $('.ggzdl_accountChart').hide();
-                                }else if(res.status==403){
-                                    location.reload();
-                                }else{
-                                    $('.nowithData').hide();
-                                    $('.ggzdl_accountChart').show();
-                                } 
+                        }else if(res.status==403){
+                            location.reload();
                         }
                     }
                 });
-                this.getCharts(1)
+                this.getCharts()
             },
             mounted:function(){
                 var _this=this;
@@ -122,17 +107,17 @@
                 });
             },
             methods:{
-                  getCharts:function(showBy){
+               
+                getCharts:function(){
                     var _this=this;
                     _this.time=[];
                     _this.account=[];
-                    _this.showBy=showBy;
                     $.ajax({
                         url:'{{route('s_user_getAccountInfoFlow')}}',
                         type:'POST',
                         async:true,
                         data:{
-                            seetype:_this.showBy
+                        
                         },
                         "headers": {
                             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
@@ -141,12 +126,9 @@
                         success:function(res){
                             if(res.status==200) {
                                 _this.views=res.data;
-                                res.data.forEach(function(v,i){
-                                    _this.time.push(v.time);
-
-                                  _this.account.push(Number(v.account).toFixed(2).toLocaleString('en-US'));
-                                  
-                                    
+                                res.data.draw.forEach(function(v,i){
+                                    _this.time.push(v.new_time);
+                                    _this.account.push(Number(v.account).toFixed(2).toLocaleString('en-US'));
                                 });
                                 // 使用刚指定的配置项和数据显示图表。
                                 _this.myChart.setOption({

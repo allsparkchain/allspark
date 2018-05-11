@@ -1,0 +1,1857 @@
+html{
+    width: 100%;
+    height: 100%;
+    font-family: "PingFang SC", "Hiragino Sans GB", "Heiti SC", "Microsoft YaHei", "WenQuanYi Micro Hei";
+}
+body{
+    background: #f8f8f8;
+}
+
+table td{
+    user-select: none;
+}
+
+.zmtdl_loginBg{
+    width: 100%;
+    height: 100%;
+    background: url(../images/zmtdl_loginBg.jpg) no-repeat center center;
+    background-size: cover;
+}
+
+.zmtdl_loginWrap{
+    position: relative;
+    width: 1200px;
+    height: 100%;
+    margin: 0 auto;
+    overflow: hidden;
+}
+.zmtdl_loginHeader{
+    width: 100%;
+    height: 70px;
+    line-height: 70px;
+    color: #fff;
+    font-size: 18px;
+}
+.zmtdl_logo{
+    float: left;
+    width: 110px;
+    height: 70px;
+    background: url(../images/zmtdl_logo.png) no-repeat;
+}
+.zmtdl_headerLink{
+    float: right;
+    color: #fff;
+    text-decoration: none;
+}
+.zmtdl_loginBox{
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    padding: 25px 40px;
+    width: 410px;
+    height: 380px;
+    box-sizing: border-box;
+    background: #fff;
+    margin: -190px 0 0 -175px;
+    border-radius: 5px;
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.35);
+}
+.zmtdl_loginBoxTab{
+    text-align: center;
+    overflow: hidden;
+}
+.zmtdl_loginBoxBody{
+    width: 100%;
+    height: 230px;
+    margin: 20px 0 0 0;
+}
+.accountErronx{
+    position: absolute;
+    left: 10px;
+    top: 66px;
+    color: #ff7241;
+    font-size: 12px;
+    font-style: normal;
+
+}
+
+#qrcode{
+    display: block;
+}
+
+#zmtdlLogin{
+    display: none;
+}
+
+#zmtdlEmailLogin{
+    display: none;
+}
+
+.zmtdl_forgetpwd{
+    display: block;
+    height: 50px;
+    line-height: 50px;
+    font-size: 14px;
+    color: #7e7e7e;
+    text-decoration: none;
+    text-align: right;
+    float: right;
+}
+
+.zmtdl_protocol{
+    height: 55px;
+    line-height: 55px;
+    font-size: 14px;
+    color: #595959;
+}
+
+.zmtdl_protocol a{
+    color: #ff7241;
+    text-decoration: none;
+}
+
+.zmtdl_protocol input[type='checkbox']{
+    margin: 0 5px 0 0;
+}
+
+.qrcode{
+    width: 190px;
+    height: 190px;
+    margin: 35px auto 0 auto;
+    background: url(../images/qrcode.jpg) no-repeat;
+}
+
+.zmtdl_input{
+    position: relative;
+    width: 100%;
+    height: 45px;
+    padding: 10px;
+    box-sizing: border-box;
+    font-size: 14px;
+    border: 1px solid #eaeaea;
+    outline: none;
+}
+
+.zmtdl_vcodeinput{
+    width: 150px;
+    height: 45px;
+    padding: 10px;
+    box-sizing: border-box;
+    font-size: 14px;
+    border: 1px solid #eaeaea;    
+}
+
+.zmtdl_vcodeBtn{
+    width: 100px;
+    height: 45px;
+    cursor: pointer;
+    margin: 0 0 0 14px;
+    background: #ff7241;
+    border-radius: 5px;
+    border: none;
+    font-size: 14px;
+    color: #fff;
+}
+
+.zmtdl_vcodeBtn:disabled{
+    background: #7e7e7e;
+}
+.zmtdl_accountSetupBank_codebtn:disabled{
+    background: #7e7e7e;
+}
+.canwithI{
+    position: absolute;
+    left: 10px;
+    top: 66px;
+    color: #ff7241;
+    font-size: 12px;
+    font-style: normal;
+
+}
+
+.zmtdl_btn{
+    width: 100%;
+    height: 43px;
+    line-height: 43px;
+    cursor: pointer;
+    color: #fff;
+    font-size: 18px;
+    border: none;
+    border-radius: 5px;
+    background: #ff7241;
+    outline: none;
+}
+
+.zmtdl_loginBoxTab span{
+    width:75px;
+    display: inline-block;
+    cursor: pointer;
+    font-size: 18px;
+    color: #373737;
+    height: 40px;
+    line-height: 40px;
+}
+.zmtdl_loginBoxTab span.on{
+    border-bottom: 2px solid #ff7241;
+}
+.zmtdl_toRegister{
+    position: absolute;
+    bottom: 30px;
+    right: 30px;
+    width: auto;
+    height: 25px;
+    line-height: 25px;
+    text-align:right; 
+    font-size: 14px;
+    color: #7e7e7e;
+}
+.zmtdl_toRegister a{
+    color: #373737;
+    text-decoration: none;
+}
+.zmtdl_footer{
+    position: absolute;
+    bottom: 0;
+    font-size: 14px;
+    color: #fff;
+    width: 100%;
+    height: 65px;
+    line-height: 65px;
+    text-align: center;
+}
+.zmtdl_success{
+    display: block;
+    margin: 80px auto 30px auto;
+    width: 76px;
+    height: 76px;
+    background: url(../images/zmtdl_success.png) no-repeat;
+}
+.zmtdl_toLogin{
+    width: 100%;
+    text-align: center;
+    color: #373737;
+    font-size: 18px;
+}
+.zmtdl_toLogin a{
+    color: #ff7241;
+    text-decoration: none;
+}
+.zmtdl_inputCheck{ display: none;}
+.zmtdl_inputCheck+label {float: left; margin: 20px 10px 0 0; width: 14px; height: 14px; background: url(../images/zmtdl_check.jpg) no-repeat;}
+.zmtdl_inputCheck:checked+label { background: url(../images/zmtdl_checked.jpg) no-repeat;}
+
+
+.zmtdl_adminHeader{
+    width: 100%;
+    height: 70px;
+    background: #fff;
+    border-bottom:1px solid #eaeaea; 
+}
+
+.zmtdl_adminHeader_wrap{
+    width: 1200px;
+    height: 70px;
+    line-height: 70px;
+    font-size: 18px;
+    color: #373737;
+    margin: 0 auto;
+}
+.zmtdl_adminLogo{
+    float: left;
+    width: 110px;
+    height: 70px;
+    background: url(../images/zmtdl_adminLogo.png) no-repeat;
+}
+.zmtdl_adminUser{
+    float: right;
+    font-size: 14px;
+    position: relative;
+}
+.zmtdl_adminUser a{
+    color: #373737;
+    text-decoration: none;
+}
+.zmtdl_adminUser a:hover{
+    color: #ff7241;
+}
+/* .zmtdl_iconaddUser{
+    float: left;
+    width: 30px;
+    height: 30px;
+    margin: 10px 0 0 10px;
+    background: url(../images/addicon.png) no-repeat;    
+} */
+
+.zmtdl_iconMenuQuit{
+    float: left;
+    width: 30px;
+    height: 30px;
+    margin: 10px 0 0 10px;
+    background: url(../images/zmtdl_iconQuit.png) no-repeat;    
+}
+.zmtdl_adminUserMenu li{
+    width: 100%;
+    height: 50px;
+    line-height: 50px;
+    border-bottom: 1px solid #eaeaea;
+}
+.zmtdl_adminWrap{
+    width: 1200px;
+    height: auto;
+    overflow: hidden;
+    margin: 50px auto 95px; 
+}
+.zmtdl_admin_wrapLeft{
+    float: left;
+    margin: 0 45px 0 0;
+    width: 260px;
+    min-height: 700px;
+    background: #fff;
+}
+
+.zmtdl_admin_wrapRight{
+    float: left;
+    width: 880px;
+    height: auto;
+}
+
+.zmtdl_adminuser_wrap{
+    width: 100%;
+    height: 260px;
+    overflow: hidden;
+}
+
+.zmtdl_adminuser_avator{
+    width: 70px;
+    height: 70px;
+    overflow: hidden;
+    background: url(../images/zmtdl_avator.jpg) no-repeat;
+    margin: 75px auto 0 auto;
+    border-radius: 50%;
+    border: 2px solid #f2f2f2;
+}
+.zmtdl_adminuser_avator img{
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+}
+
+.zmtdl_adminuser_name{
+    width: 160px;
+    height: 25px;
+    line-height: 25px;
+    font-size: 18px;
+    text-align: center;
+    color: #373737;
+    margin: 20px auto 0 auto;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+.zmtdl_admin_navUl{
+    width: 100%;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+.zmtdl_admin_navUl li{
+    font-size: 18px;
+    height: 70px;
+    line-height: 70px;
+    border-top: 2px solid #f2f2f2;
+    box-sizing: border-box;
+    border-left: 2px solid #f2f2f2;
+}
+.zmtdl_admin_navUl li:last-of-type{
+    border-bottom: 2px solid #f2f2f2;
+}
+.zmtdl_admin_navUl li a{
+    display: block;
+    color: #7e7e7e;
+    text-decoration: none;
+}
+.zmtdl_iconUser,.zmtdl_iconChannel,.zmtdl_iconCommission,.zmtdl_iconAccount,.zmtdl_iconaddUser{
+    float: left;
+    margin: 20px 15px 0 30px;
+    width: 30px;
+    height: 30px;
+    
+}
+.zmtdl_iconaddUser{
+    background: url(../images/addicon.png) no-repeat;
+}
+.zmtdl_iconUser{
+    background: url(../images/zmtdl_iconUser.png) no-repeat;
+}
+.zmtdl_iconChannel{
+    background: url(../images/zmtdl_iconChannel.png) no-repeat;
+}
+.zmtdl_iconCommission{
+    background: url(../images/zmtdl_iconCommission.png) no-repeat;
+}
+.zmtdl_iconAccount{
+    background: url(../images/zmtdl_iconAccount.png) no-repeat;
+}
+.zmtdl_rightArrow{
+    display: inline-block;
+    width: 30px;
+    height: 30px;
+    position: relative;
+    top: 10px;
+    left:50px;
+}
+.zmtdl_admin_navUl li.on{
+    border-left: 2px solid #ff7241;
+}
+.zmtdl_admin_navUl li.on a{
+    display: block;
+    color: #373737;
+    text-decoration: none;
+}
+
+.zmtdl_admin_navUl li.on .zmtdl_rightArrow{
+    background: url(../images/zmtdl_rightArrow.png) no-repeat;
+}
+.zmtdl_admin_navUl li.on .zmtdl_iconaddUser{
+    background: url(../images/addiconOn.png) no-repeat;
+}
+.zmtdl_admin_navUl li.on .zmtdl_iconUser{
+    background: url(../images/zmtdl_iconUserOn.png) no-repeat;
+}
+.zmtdl_admin_navUl li.on .zmtdl_iconChannel{
+    background: url(../images/zmtdl_iconChannelOn.png) no-repeat;
+}
+.zmtdl_admin_navUl li.on .zmtdl_iconCommission{
+    background: url(../images/zmtdl_iconCommissionOn.png) no-repeat;
+}
+.zmtdl_admin_navUl li.on .zmtdl_iconAccount{
+    background: url(../images/zmtdl_iconAccountOn.png) no-repeat;
+}
+
+.zmtdl_friend_invite{
+    width: auto;
+    height: 60px;
+    line-height: 60px;
+    padding: 0 40px;
+    color: #373737;
+    background: #fff;
+    border-radius: 7px;
+    margin: 0 0 20px 0;
+}
+.zmtdl_friend_invite p{
+    float: right;
+    font-size: 14px;
+    color: #7e7e7e;
+    margin: 0;
+}
+.zmtdl_iconCopy{
+    position: relative;
+    top: 7px;
+    cursor: pointer;
+    display: inline-block;
+    width:25px;
+    height: 25px;
+    background: url(../images/zmtdl_iconCopy.png) no-repeat;
+}
+
+.zmtdl_accountDetail{
+    overflow: hidden;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+.zmtdl_accountDetail li{
+    float: left;
+    box-sizing: border-box;
+    width: 280px;
+    height: 140px;
+    line-height: 50px;
+    padding: 15px 0 0 0;
+    margin: 0 20px 20px 0;
+    border-radius: 7px;
+    background: #fff;
+    text-align: center;
+    font-size: 24px;
+    color: #373737;
+}
+.zmtdl_accountDetail li:nth-of-type(3n){
+    margin: 0 0 20px 0;
+}
+.zmtdl_accountDetail li span{
+    font-size: 16px;
+    color: #7e7e7e;
+}
+.zmtdl_accountChart{
+    width: 100%;
+    height: 515px;
+    border-radius: 7px;
+    background: #fff;
+}
+.zmtdl_chartTitle{
+    width: 100%;
+    height: 95px;
+    line-height: 95px;
+    box-sizing: border-box;
+    padding: 0 40px;
+    color: #7e7e7e;
+    
+}
+.zmtdl_chartTitle h6{
+    float: left;
+    line-height: 95px;
+    font-weight: normal;
+    margin: 0 80px 0 0;
+    font-size: 16px;
+    color: #373737;
+}
+.zmtdl_chartTitle span{
+    cursor: pointer;
+    font-size: 14px;
+    color: #7e7e7e;
+}
+.zmtdl_chartTitle span.on{
+    color: #373737;
+}
+.zmtdl_adminFooter{
+    width: 100%;
+    height: 55px;
+    line-height: 55px;
+    font-size: 14px;
+    color: #7e7e7e;
+    text-align: center;
+}
+
+.zmtdl_contactus{
+    width: 100%;
+    height: 1070px;
+    overflow: hidden;
+    background: #fff;
+    font-size: 16px;
+    color: #373737;
+}
+.zmtdl_contactus_wrap{
+    width: 250px;
+    margin: 267px auto 0 auto;
+}
+.zmtdl_contactus_wrap h3{
+    margin: 0 0 60px 0;
+    font-weight: normal;
+    font-size: 24px;
+    color: #373737;
+}
+
+.zmtdl_admin_condition{
+    width: 100%;
+    overflow: hidden;
+    margin: 0 0 20px 0;
+}
+.zmtdl_admin_day{
+    float: left;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    overflow: hidden;
+}
+.zmtdl_admin_day li{
+    float: left;
+    cursor: pointer;
+    margin: 0 40px 0 0;
+    font-size: 16px;
+    color: #7e7e7e;
+    height: 40px;
+    line-height: 40px;
+    box-sizing: border-box;
+}
+.zmtdl_admin_day li.on{
+    color: #373737;
+    border-bottom: 2px solid#ff7241;
+}
+.zmtdl_admin_search{
+    float: right;
+    width: 295px;
+    height: 40px;
+    background: #fff;
+    border: 1px solid #eaeaea;
+    border-radius: 5px;
+}
+.zmtdl_iconQuery{
+    float: left;
+    width: 30px;
+    height: 30px;
+    margin: 5px 3px 0 5px;
+    background: url(../images/zmtdl_iconQuery.png) no-repeat;
+}
+.zmtdl_zmtsearch{
+    width: 80%;
+    height: 37px;
+    font-size: 16px;
+    border: none;
+    outline: none;
+}
+.zmtdl_admin_downloadReport{
+    width: 100%;
+    height: 50px;
+    line-height: 50px;
+    text-align: right;
+}
+.zmtdl_admin_downloadReport a{
+    color: #373737;
+    font-size: 14px;
+    text-decoration: none;
+}
+.zmtdl_reportWrap{
+    border-radius: 7px;
+    background: #fff;
+    padding-bottom: 40px;
+    min-height: 600px;
+}
+.zmtdl_reportTableWrap{
+    width: 100%;
+    min-height: 600px;
+    background: #fff;
+}
+.zmtdl_reportTable{
+    width: 100%;
+    text-align: center;
+    margin: 0 0 80px 0;
+}
+.zmtdl_reportTable thead td{
+    background: #fff;
+    color: #373737;
+    border-bottom: 1px solid #eaeaea;
+}
+.zmtdl_reportTable thead td.on{
+    color: #ff7241;
+}
+.zmtdl_reportTable tr td{
+    padding: 10px;
+    font-size: 14px;
+    height: 40px;
+    line-height: 40px;
+}
+.zmtdl_reportTable tbody td{
+    color: #7e7e7e;
+    background: #fafafa;
+}
+.zmtdl_reportTable tbody td a{
+    color: #7e7e7e;
+    text-decoration: none;
+}
+.zmtdl_reportTable tbody tr:nth-of-type(even) td{
+    background: #fff;
+}
+
+.zmtdl_iconArrow{
+    position: relative;
+    top: 3px;
+    display: inline-block;
+    width: 15px;
+    height: 15px;
+}
+
+.zmtdl_iconArrow.down{
+    background: url(../images/zmtdl_iconDown.png) no-repeat;
+}
+
+.zmtdl_iconArrow.up{
+    background: url(../images/zmtdl_iconUp.png) no-repeat;
+}
+
+.zmtdl_pageWrap{
+    text-align: center;
+}
+.zmtdl_page{
+    display: inline-block;
+    padding: 0;
+    list-style: none;
+    overflow: hidden;
+}
+.zmtdl_page li{
+    cursor: pointer;
+    float: left;
+    width: 60px;
+    height: 32px;
+    line-height: 32px;
+    border-radius: 7px;
+    font-size: 14px;
+    text-align: center;
+    box-sizing: border-box;
+    background: #fff;
+    color: #7e7e7e;
+    margin: 0 10px 0 0;
+    border: 1px solid #e2e2e2;
+}
+.zmtdl_page li.on,.zmtdl_page li:hover{
+    background: #ff7241;
+    color:#fff;
+    border: 1px solid #ff7241;
+}
+.zmtdl_page li.first{
+    margin: 0 20px 0 0;
+}
+.zmtdl_page li.last{
+    margin: 0 0 0 10px;
+}
+
+.zmtdl_admin_crumbs{
+    width: auto;
+    height: 20px;
+    line-height: 20px;
+    margin: 0 0 20px 0;
+    font-size: 14px;
+    color: #7e7e7e;
+}
+
+.zmtdl_admin_crumbs .on{
+    color: #373737;
+}
+.zmtdl_admin_crumbs a{
+    float: right;
+    font-size: 16px;
+    color: #373737;
+    text-decoration: none;
+}
+
+.zmtdl_userData{
+    width: 100%;
+    height: 140px;
+    margin: 0 0 20px 0;
+    display: flex;
+    justify-content:space-between;
+}
+
+.zmtdl_userDataBox,.zmtdl_userDataBox2{
+    box-sizing: border-box;
+    padding: 15px 0 0 0;
+    text-align: center;
+    border-radius: 7px;
+    background: #fff;
+    color: #373737;
+    font-size: 24px;
+}
+.zmtdl_userDataBox{
+    width: 200px;
+    height: 140px;
+    line-height: 50px;
+}
+.zmtdl_userDataBox2{
+    width: 280px;
+    height: 140px;
+    line-height: 50px;
+}
+.zmtdl_userDataBox span,.zmtdl_userDataBox2 span{
+    font-size: 16px;
+    color: #7e7e7e;
+}
+
+.zmtdl_admin_withdrawalwrap{
+    width: 100%;
+    margin: 0 0 10px 0;
+    display: flex;
+    justify-content:space-between;
+}
+.zmtdl_admin_withdrawalcontent{
+    width: 430px;
+    height: 265px;
+    box-sizing: border-box;
+    padding: 40px 0 0 0;
+    background: #fff;
+    border-radius: 5px;
+    font-size: 24px;
+    color: #373737;
+    text-align: center;
+    line-height: 55px;
+}
+.zmtdl_admin_withdrawalcontent span{
+    font-size: 16px;
+    color: #7e7e7e;
+}
+.zmtdl_admin_withdrawalcontent a{
+    display: inline-block;
+    border-radius: 3px;
+    border: 1px solid #eaeaea;
+    width: 105px;
+    height: 35px;
+    line-height: 35px;
+    font-size: 16px;
+    color: #373737;
+    text-decoration: none;
+}
+
+.zmtdl_admin_withdrawalCondition{
+    width: 100%;
+    overflow: hidden;
+    margin: 0 0 20px 0;
+}
+
+.zmtdl_admin_dayPickerWrap{
+    float: left;
+    margin: 0 30px 0 0;
+    border-radius: 5px;
+    border: 1px solid #eaeaea;
+    overflow: hidden;
+}
+.zmtdl_admin_dayPicker{
+    float: left;
+    box-sizing: border-box;
+    padding: 7px 0 0 25px;
+    width: 185px;
+    height: 40px;
+    background: #fff;
+}
+
+.zmtdl_admin_dayPicker input[type=text]{
+    outline: none;
+    width: 120px;
+    height: 25px;
+    font-size: 14px;
+    color: #7e7e7e;
+    border: none;
+}
+.zmtdl_iconCalendar{
+    position: relative;
+    top: 2px;
+    display: inline-block;
+    width: 15px;
+    height: 15px;
+    background: url(../images/zmtdl_iconCalendar.png) no-repeat;
+}
+.zmtdl_admin_queryBtn{
+    float: left;
+    width: 120px;
+    height: 40px;
+    line-height: 40px;
+    border: none;
+    background: #ff7241;
+    border-radius: 5px;
+    color: #fff;
+}
+.zmtdl_admin_withdrawalCondition a{
+    float: right;
+    line-height: 40px;
+    font-size: 16px;
+    color: #373737;
+    text-decoration: none;
+}
+.zmtdl_settlementDate{
+    position: relative;
+    display: inline-block;
+    text-align: center;
+    width: 50px;
+    height: 20px;
+    left: 20px;
+    line-height: 20px;
+    color: #fff;
+    font-size: 12px;
+    background: #ff7241;
+
+}
+.zmtdl_settlementDate::before{
+    position: absolute;
+    content: "";
+    left: -10px;
+    top: 0;
+    border-top: 10px solid transparent;  
+    border-right: 10px solid #ff7241;  
+    border-bottom: 10px solid transparent;
+
+}
+
+.zmtdl_towithdrawWrap{
+    width: 100%;
+    height: 1025px;
+    overflow: hidden;
+    background: #fff;
+    border-radius: 5px;
+}
+.zmtdl_balanceandbank{
+    width: 100%;
+    height: 165px;
+    line-height: 165px;
+    border-bottom: 1px solid #eaeaea;
+}
+.zmtdl_balanceandbank_box{
+    float: left;
+    width: 50%;
+    height: 30px;
+    line-height: 30px;
+    box-sizing: border-box;
+    text-align: center;
+    margin: 65px 0 0 0;
+}
+.zmtdl_balanceandbank_box .zmtdl_balanceandbank_ye{
+    font-size: 16px;
+    color: #7e7e7e;
+}
+.zmtdl_balanceandbank_box .zmtdl_balanceandbank_num{
+    font-size: 24px;
+    color: #373737;
+}
+.zmtdl_balanceandbank_box .zmtdl_balanceandbank_bank{
+    font-size: 16px;
+    color: #e44b4d;
+}
+.zmtdl_balanceandbank_box .zmtdl_balanceandbank_setup{
+    font-size: 16px;
+    color: #373737;
+}
+
+.zmtdl_towithdraw_form{
+    float: left;
+    width: 390px;
+    height: 290px;
+    margin: 90px 0 0 250px;
+}
+.zmtdl_towithdraw_input{
+    float: left;
+    width: 320px;
+    height: 40px;
+    font-size: 14px;
+    outline: none;
+    box-sizing: border-box;
+    padding: 0 10px;
+    background: #fff;
+    border: 1px solid #eaeaea;
+}
+.zmtdl_towithdraw_full{
+    float: left;
+    width: 65px;
+    height: 40px;
+    text-align: center;
+    line-height: 40px;
+    font-size: 14px;
+    color: #373737;
+}
+
+.zmtdl_towithdraw_cost{
+    width: auto;
+    height: 35px;
+    line-height: 35px;
+    overflow: hidden;
+    margin: 0;
+    padding: 0 10px;
+    font-size: 14px;
+    color: #373737;
+}
+.zmtdl_towithdraw_radio{
+    width: 100%;
+    height: 35px;
+    line-height: 35px;
+    font-size: 14px;
+    color: #7e7e7e;
+}
+.zmtdl_towithdraw_radio label{
+    margin: 0 0 0 17px;
+    font-weight: normal;
+}
+.zmtdl_towithdraw_btn{
+    width: 270px;
+    height: 45px;
+    margin: 50px 0 0 0;
+    border-radius: 5px;
+    color: #fff;
+    font-size: 18px;
+    background: #ff7241;
+    border: none;
+}
+
+.zmtdl_accountSetupWrap{
+    width: 100%;
+    margin: 0 0 20px 0;
+    background: #fff;
+    border-radius: 5px;
+}
+.zmtdl_accountSetupBrief{
+    width: 100%;
+    cursor: pointer;
+    box-sizing: border-box;
+    padding: 0 40px;
+    font-size: 16px;
+    height: 85px;
+    line-height: 85px;
+    color: #7e7e7e;
+}
+
+.zmtdl_accountSetupRight{
+    float: right;
+    
+    width: 30px;
+    height: 30px;
+    margin: 25px 0 0 0;
+}
+.zmtdl_accountSetupRight{
+    background: url(../images/zmtdl_rightArrow.png) no-repeat;
+}
+
+.zmtdl_accountSetupBrief.on{
+    color: #373737;
+}
+.zmtdl_accountSetupBrief.on .zmtdl_accountSetupRight{
+    background: url(../images/zmtdl_downArrow.png) no-repeat;
+}
+
+
+.zmtdl_accountSetupPwd,.zmtdl_accountSetupBank{
+    width: 100%;
+    height: 490px;
+    border-top: 1px solid #f2f2f2;
+    background: #fff;
+}
+
+.zmtdl_accountSetupBankWrap input[type=text]{
+    width: 270px;
+    height: 40px;
+    box-sizing: border-box;
+    border: 1px solid #eaeaea;
+    padding: 0 10px;
+    -margin: 0 0 30px 0;
+    outline: none;
+}
+
+
+.zmtdl_accountSelectBank input[type="text"]{
+    width: 270px;
+    height: 45px;
+    padding: 10px;
+    box-sizing: border-box;
+    font-size: 14px;
+    border: 1px solid #eaeaea;
+    outline: none;
+}
+.zmtdl_support_bank{
+    position: absolute;
+    top: 0;
+    right: 20px;
+    font-size: 14px;
+    color: #ff7241;
+    height: 45px;
+    line-height: 45px;
+    text-decoration: none;
+}
+.zmtdl_support_bank:hover .zmtdl_bank_ul{
+    display: block;
+}
+.zmtdl_support_bank:hover{
+    color: #ff7241;
+    text-decoration: none;
+}
+.zmtdl_bank_ul{
+    list-style: none;
+    position: absolute;
+    display: none;
+    margin: 0;
+    padding: 0;
+    top: 39px;
+    right: -20px;
+    width: 130px;
+    height: 150px;
+    background: #fff;
+    border: 1px solid #eaeaea;
+    border-top: none;
+    overflow-y: auto;
+}
+
+.zmtdl_bank_ul li{
+    cursor: pointer;
+    font-size: 14px;
+    box-sizing: border-box;
+    padding: 0 0 0 20px;
+    height: 30px;
+    line-height: 30px;
+    color: #7E7E7E;
+}
+
+.zmtdl_accountSetupBankWrap input[type=button]{
+    width: 270px;
+    height: 40px;
+    background: #ff7241;
+    color: #fff;
+    border: none;
+    border-radius: 5px;    
+}
+
+.zmtdl_accountSetupPwdWrap,.zmtdl_accountSetupBankWrap{
+    width: 270px;
+    height: auto;
+    margin: 110px auto 0 auto;
+}
+.zmtdl_accountSetupBankInfoWrap{
+    width: 520px;
+    height: auto;
+    margin: 70px auto 0 auto;
+}
+.zmtdl_accountSetupPwdWrap input[type=password]{
+    width: 270px;
+    height: 40px;
+    box-sizing: border-box;
+    border: 1px solid #eaeaea;
+    padding: 0 10px;
+    margin: 0 0 30px 0;
+    outline: none;
+}
+.zmtdl_accountSetupPwdWrap input[type=button]{
+    width: 270px;
+    height: 40px;
+    background: #ff7241;
+    color: #fff;
+    border: none;
+    border-radius: 5px;    
+}
+
+.zmtdl_accountSetupBankBind{
+    position: relative;
+    width: 520px;
+    height: 230px;
+    background: url(../images/zmtdl_accountSetupBankBind.png) no-repeat;
+}
+
+.zmtdl_bankCard{
+    width: 337px;
+    height: 174px;
+    position: absolute;
+    top: 30px;
+    left: 90px;
+}
+
+.zmtdl_bankCard.gsyh{
+    background: url(../images/gsyh.png) no-repeat;
+}
+.zmtdl_bankCard.zsyh{
+    background: url(../images/zsyh.png) no-repeat;
+}
+.zmtdl_bankCard.gdyh{
+    background: url(../images/gdyh.png) no-repeat;
+}
+.zmtdl_bankCard.jtyh{
+    background: url(../images/jtyh.png) no-repeat;
+}
+.zmtdl_bankCard.zxyh{
+    background: url(../images/zxyh.png) no-repeat;
+}
+.zmtdl_bankCard.nyyh{
+    background: url(../images/nyyh.png) no-repeat;
+}
+.zmtdl_bankCard.jsyh{
+    background: url(../images/jsyh.png) no-repeat;
+}
+.zmtdl_bankCard.pfyh{
+    background: url(../images/pfyh.png) no-repeat;
+}
+.zmtdl_bankCard.xyyh{
+    background: url(../images/xyyh.png) no-repeat;
+}
+.zmtdl_bankCard.zgyh{
+    background: url(../images/zgyh.png) no-repeat;
+}
+.zmtdl_bankCard.yzcxyh{
+    background: url(../images/yzcxyh.png) no-repeat;
+}
+
+.zmtdl_accountSetupBankName{
+    position: absolute;
+    top: 50px;
+    left: 120px;
+    font-size: 16px;
+    color: #fff;
+}
+.zmtdl_accountSetupBankNum{
+    position: absolute;
+    top: 95px;
+    left: 120px;
+    font-size: 18px;
+    color: #fff;    
+}
+
+.zmtdl_accountSetupBankUser{
+    position: absolute;
+    top: 160px;
+    right: 120px;
+    font-size: 16px;
+    color: #fff;   
+}
+
+.zmtdl_accountSetupBankLink{
+    width: 520px;
+    font-size: 16px;
+    color: #7e7e7e;
+    text-align: center;
+    margin: 50px 0 0 0;
+}
+
+.zmtdl_accountSetupBankLink span{
+    float: left;
+    box-sizing: border-box;
+    width: 50%;
+    height: 30px;
+    line-height: 30px;
+    cursor: pointer;
+}
+.zmtdl_accountSetupBankLink span:first-of-type{
+    border-right: 1px solid #eaeaea;
+}
+
+.zmtdl_accountSetupBankRelieveChangeWrap{
+    width: 270px;
+    height: auto;
+
+    margin: 70px auto 0 auto;
+}
+
+.zmtdl_accountSetupBank_mobile{
+    height: 40px;
+    line-height: 40px;
+    font-size: 24px;
+    color: #373737;
+}
+.zmtdl_accountSetupBank_mobile span{
+    font-size: 16px;
+    color: #7e7e7e;
+}
+.zmtdl_accountSetupBank_code{
+    width: 150px;
+    height: 40px;
+    box-sizing: border-box;
+    outline: none;
+    padding: 10px;
+    border: 1px solid #eaeaea;
+    font-size: 14px;
+}
+.zmtdl_accountSetupBank_codebtn{
+    width: 110px;
+    height: 40px;
+    background: #ff7241;
+    border-radius: 5px;
+    border: none;
+    font-size: 14px;
+    color: #fff;    
+}
+.zmtdl_accountSetupBank_confirm{
+    width: 150px;
+    height: 40px;
+    background: #ff7241;
+    border-radius: 5px;
+    border: none;
+    font-size: 18px;
+    color: #fff;      
+}
+.zmtdl_accountSetupBank_back{
+    display: inline-block;
+    width: 100px;
+    height: 40px;
+    line-height: 40px;
+    font-size: 14px;
+    text-align: center;
+    text-decoration: none;
+    color: #7e7e7e;
+}
+
+.zmtdl_bankRelieveSuccessWrap{
+    width: 380px;
+    height: auto;
+    margin: 160px auto 0 auto;    
+}
+
+.zmtdl_bankRelieveSuccess{
+    width: 337px;
+    height: 174px;
+    overflow: hidden;
+    background: url(../images/zmtdl_bankRelieveSuccess.png) no-repeat;
+}
+.zmtdl_bankRelieveSuccess p{
+    font-size: 16px;
+    color: #7e7e7e;
+    text-align: center;
+    margin: 60px 0 0 0;
+}
+#pgy_account_text1{
+    width: 270px;
+    display: block;
+    height: 40px;
+    box-sizing: border-box;
+    border: 1px solid #eaeaea;
+    padding: 0 10px;
+    margin: 0 0 30px 0;
+    outline: none;
+}
+#pgy_account_text2{
+    display: block;
+    width: 270px;
+    height: 40px;
+    box-sizing: border-box;
+    border: 1px solid #eaeaea;
+    padding: 0 10px;
+    margin: 0 0 30px 0;
+    outline: none;
+}
+.pgy_accountSetupBank_codebtn{
+    width: 110px!important;
+    height: 40px;
+    background: #ff7241;
+    border-radius: 5px;
+    border: none;
+    font-size: 14px;
+    color: #fff;
+    margin-left: 4px;
+}
+.pgy_success_g{
+    width: 140px;
+    height: 160px;
+    margin: 154px auto auto auto;
+    text-align: center;
+}
+.pgy_success_g img{
+    margin: 0 auto 19px auto;
+}
+.pgy_success_g > p{
+    text-align: center;
+}
+.pgy_successP1{
+    font-size: 18px;
+    color:#373737;
+    margin: 0px auto 10px auto;
+}
+.pgy_successP2{
+    font-size: 14px;
+    color:#7E7E7E;
+    margin: 0;
+}
+.py_litterDetails{
+    width: 272px;
+    height: auto;
+   margin:0 auto;
+}
+.py_litterDetails > div{
+    width: 272px;
+    height: 122px;
+    margin-top: 13px;
+}
+.py_litterDetails label{
+    width: 72px;
+    height: 43px;
+    line-height: 43px;
+    color: #373737;
+    font-size: 18px;
+    
+}
+.pgy_bdemail{
+    margin-top: 23px;
+}
+.pgy_bdemail,.pgy_bdidentity,.pgy_identityName,.pgy_identityCode,.pgy_cardCode{
+    position: relative;
+    width: 270px;
+    height: 43px;
+    padding: 10px;
+    box-sizing: border-box;
+    font-size: 14px;
+    border: 1px solid #eaeaea;
+    outline: none;
+
+}
+.pgy_identityName{
+    margin-bottom: 30px;
+}
+.py_litterDetails > div > span{
+    position: absolute;
+    top: 89px;
+    left:0px;
+    font-size:12px;
+    color: #7E7E7E;
+}
+
+
+.pgy_identityName{
+    margin-top: 23px;
+}
+#pgy_next_goto{
+    width: 271px;
+    height: 43px;
+    margin: 0px auto 20px auto;
+}
+#pgy_next_goto a{
+    text-decoration: none;
+    display: inline-block;
+    width: 111px;
+    line-height: 43px;
+    font-size: 18px;
+    color: #ffffff;
+    background:#FF7241 ;
+    text-align: center;
+    border-radius: 5px;
+
+}
+#pgy_next_goto a:first-child{
+    float: left;
+}
+#pgy_next_goto a:last-child{
+    float: right;
+}
+.zmtdl_toRegister_more{
+    line-height: 25px;
+    text-align: right;
+    font-size: 14px;
+    color: #7e7e7e;
+}
+.zmtdl_toRegister_more a{
+    color: #FF7241;
+    text-decoration: none;
+}
+/* 添加广告主 */
+
+
+.addCentuser{
+    width: 877px;
+    height: auto;
+    padding: 0 0 70px 0;
+    background: #ffffff;
+    overflow: hidden;
+}
+.addCentuser label{
+    width: 112px;
+    height: 43px;
+    line-height: 43px;
+    color: #373737;
+    font-size: 16px;
+    float: left;
+    font-weight: normal;
+    text-align: right;
+}
+
+.pgy_company,.pgy_address,.pgy_wangzhi,.pgy_zip{
+    position: relative;
+    width: 454px;
+    height: 43px;
+    line-height: 22px;
+    padding: 10px;
+    box-sizing: border-box;
+    font-size: 12px;
+    border: 1px solid #eaeaea;
+    outline: none;
+    float: right;
+    position: absolute;
+    color: #cfcfcf;
+    right: 0px;
+}
+#pay_commdity{
+    position: relative;
+    width: 454px;
+    height: 203px;
+    padding: 10px;
+    box-sizing: border-box;
+    font-size: 14px;
+    border: 1px solid #eaeaea;
+    outline: none;
+    float: right;
+    position: absolute;
+    right: 0px;
+}
+#pay_beizhu{
+    position: relative;
+    width: 454px;
+    height: 73px;
+    padding: 10px;
+    box-sizing: border-box;
+    font-size: 14px;
+    border: 1px solid #eaeaea;
+    outline: none;
+    float: right;
+    position: absolute;
+    right: 0px;
+}
+.pgy_fuzeng,.pgy_concat{
+    width: 151px;
+    height: 43px;
+    padding: 10px;
+    box-sizing: border-box;
+    font-size: 14px;
+    border: 1px solid #eaeaea;
+    outline: none;
+    float: left;
+    margin-left: 25px;
+}
+.gremark{
+    width: 100%;
+    border: 1px solid #eaeaea;
+    line-height: 30px;
+    height: 30px;
+    text-align: center;
+    position: absolute;
+    top: -50px;
+    left: 0;
+    color: #FF7241;
+}
+.gcompanys{
+    height: 43px;
+    width: 593px;
+    margin-top: 71px;
+    position: relative;
+    
+}
+.gcompanys span{
+    position: absolute;
+    top: 45px;
+    left: 149px;
+    color:#ff7241;
+}
+.gbeizhu{
+    height: 73px;
+    width: 593px;
+    margin-top: 30px;
+    position: relative;
+}
+.gzip{
+    position: relative;
+}
+.wenj{
+    position: relative;
+    /* top: 1px;
+    left: 149px; */
+    width: 454px;
+    height: 40px;
+    margin: 5px 0 0 140px;
+    word-break: break-all;
+
+}
+.wenj .imgzips{
+    background: url("../images/zipic.jpg") no-repeat;
+    width: 31px;
+    height: 28px;
+    float: left;
+    margin-top: 7px;
+    margin-right:11px;
+}
+.wenj a{
+    position: absolute;
+    top: 0;
+    right: -40px;
+    color: #ff7841;
+    text-decoration: none;
+}
+.imgZips{
+    background: url("../images/zipic.jpg") no-repeat;
+    width: 31px;
+    height: 28px;
+    float: left;
+    margin-top: 7px;
+    margin-right:11px;
+}
+
+.upImgs{
+    background: url("../images/upImgs.jpg") no-repeat;
+    width: 31px;
+    height: 28px;
+    float: left;
+    margin-top: 7px;
+    margin-right:11px;
+}
+
+.upFiles{
+    background: url("../images/upFiles.jpg") no-repeat;
+    width: 31px;
+    height: 28px;
+    float: left;
+    margin-top: 7px;
+    margin-right:11px;
+}
+
+.upVideos{
+    background: url("../images/upVideos.jpg") no-repeat;
+    width: 31px;
+    height: 28px;
+    float: left;
+    margin-top: 7px;
+    margin-right:11px;
+}
+
+.gzip input[type=file]{
+    width: 25px;
+    height: 21px;
+    opacity: 0;
+    position: absolute;
+    top: 8px;
+    right: 20px;
+}
+.gaddress,.gwangzhi,.gfuzeng,.gzip{
+    width: 593px;
+    min-height: 43px;
+    margin-top: 30px;
+    overflow: hidden;
+    position: relative;
+}
+.gcommdity{
+    width: 593px;
+    height: 203px;
+    margin-top: 30px;
+    position: relative;
+
+}
+.uploade_content{
+    width:181px;
+    height: 122px;
+    background: url(../images/upphoto.jpg)no-repeat;
+    float: left;
+    margin-top: 12px;
+
+}
+.upcolse{
+    width:25px;
+    height: 26px;
+    position: absolute;
+    background: url(../images/upclose.png)no-repeat;
+    right: 0px;
+    top: 0px;
+}
+.loadedImg{
+    width: 193px;
+    height: 136px;
+    position: relative;
+    float: right;
+}
+.uploade_content input[type=file]{
+    width: 181px;
+    height: 122px;
+    opacity: 0;
+}
+
+.loadedImg img{
+    position: absolute;
+    width: 182px;
+    height: 122px;
+    bottom: 0px;
+    left: 0px;
+}
+.gupfile{
+    width:593px;
+    height: 136px;
+    margin-top: 18px;
+    position: relative;
+}
+
+input::-webkit-input-placeholder { /* WebKit, Blink, Edge */
+    color:#cfcfcf;
+}
+ input::-moz-placeholder { /* Mozilla Firefox 4 to 18 */
+    color:#cfcfcf;
+}
+ input::-moz-placeholder { /* Mozilla Firefox 19+ */
+    color:#cfcfcf;
+}
+ input::-ms-input-placeholder { /* Internet Explorer 10-11 */
+    color:#cfcfcf;
+}
+textarea::-webkit-input-placeholder { /* WebKit, Blink, Edge */
+    color:#cfcfcf;
+}
+textarea::-moz-placeholder { /* Mozilla Firefox 4 to 18 */
+    color:#cfcfcf;
+}
+textarea::-moz-placeholder { /* Mozilla Firefox 19+ */
+    color:#cfcfcf;
+}
+textarea::-ms-input-placeholder { /* Internet Explorer 10-11 */
+    color:#cfcfcf;
+}
+.addCentuser input[type=button]{
+    width: 271px;
+    height: 43px;
+    background: #FF7241;
+    border-radius: 5px;
+    text-align: center;
+    color: #ffffff;
+    line-height: 43px;
+    border: none;
+    font-size: 18px;
+    margin-left:138px;
+    outline: none;
+}
+.pgy_upfile{
+    width: 455px;
+    height: 124px;
+    float: right;
+
+}
+.total_bank{
+    width: 270px;
+    height: 178px;
+  float: right;
+  margin-top: 23px;
+}
+.zmtdl_accountSelectBanks{
+    position: relative;
+    margin-bottom: 30px;
+  
+}
+.zmtdl_accountSelectBanks input[type="text"]{
+    width: 270px;
+    height: 45px;
+    padding: 10px;
+    box-sizing: border-box;
+    font-size: 14px;
+    border: 1px solid #eaeaea;
+    outline: none;
+}
+.zmtdl_bank_ul li{
+    cursor: pointer;
+    font-size: 14px;
+    box-sizing: border-box;
+    padding: 0 0 0 20px;
+    height: 30px;
+    line-height: 30px;
+    color: #7E7E7E;
+}
+
+.zmtdl_bank_ul{
+    list-style: none;
+    position: absolute;
+    display: none;
+    margin: 0;
+    padding: 0;
+    top: 44px;
+    right: -20px;
+    width: 130px;
+    height: 150px;
+    background: #fff;
+    border: 1px solid #eaeaea;
+    border-top: none;
+    overflow-y: auto;
+    z-index: 999;
+}
+/* 详情 */
+.compangyDetail{
+    width: 420px;
+    height: 43px;
+    line-height: 43px;
+    color:#373737;
+    font-size: 14px;
+    float:right;
+    position: relative;
+}
+.compangyDetail a{
+    display: block;
+}
+.pline{
+    float: left;
+    margin: 10px auto auto 30px;
+    color:#cfcfcf;
+
+}
+.commdityDetail{
+    width: 420px;
+    height: 203px;
+    line-height: 25px;
+    color:#373737;
+    font-size: 14px;
+    float:right;
+    overflow: hidden;
+    margin-top: 8px;
+}
+.beizhuDetail{
+    width: 420px;
+    height: 73px;
+    line-height: 25px;
+    color:#373737;
+    font-size: 14px;
+    float:right;
+    overflow: hidden;
+    margin-top: 8px;
+}
+.fuzengDetail{
+    width: 151px;
+    height: 43px;
+    float: left;
+    margin: 10px auto auto auto;
+    text-indent:2em;
+}
+.concatDetail{
+    width: 150px;
+    height: 43px;
+    float: right;
+    margin: 10px auto auto 0px;
+    text-indent:2em;
+}
+.upfileDetail{
+    width: 182px;
+    height: 122px;
+    float: right;
+    margin: auto 235px auto auto;
+}
+.downtext{
+    width:21px;
+    height: 21px;
+    background: url(../images/downtext.png)no-repeat;
+    position: absolute;
+    right:1px;
+    top:8px;
+    cursor: pointer;
+}
+.loadups{
+    width:25px;
+    height: 21px;
+    background: url(../images/uptext.png)no-repeat;
+    position: absolute;
+    right:10px;
+    top:10px;
+    cursor: pointer;
+}
+.ggzdl_inputCheck{ display: none;}
+.ggzdl_inputCheck+label {float: left; margin: 20px 10px 0 0; width: 14px; height: 14px; background: url(../images/zmtdl_check.jpg) no-repeat;}
+.ggzdl_inputCheck:checked + label { background: url(../images/zmtdl_checked.jpg) no-repeat;}
+.pgy_alert{
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.35);
+    z-index: 1000;
+    display: none;
+}
+.pgy_articleTips{
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    margin: -100px 0 0 -170px;
+    width: 340px;
+    height: 200px;
+    background: #fff;
+    border-top: 15px solid #ff7841;
+    border-radius: 5px;
+    font-size: 18px;
+    color: #000;
+    text-align: center;
+    line-height: 200px;
+}
+.pgy_closes{
+    width: 31px;
+    height: 31px;
+    background: url("../images/colsecopy.png")no-repeat;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    margin-left: 153px;
+    margin-top: -150px;
+    cursor: pointer;
+}
+.zmtdl_addShops{
+    margin-bottom: 20px;
+}
+.zmtdl_addShops > a{
+    display: inline-block;
+    border-radius: 3px;
+    border: 1px solid #eaeaea;
+    width: 105px;
+    height: 35px;
+    line-height: 35px;
+    font-size: 16px;
+    color: #373737;
+    text-decoration: none;
+    text-align: center;
+    background: #ffffff;
+}
+.pgy_error{
+    width: 271px;
+    color: #ff7241;
+    height: 30px;
+    line-height: 30px;
+    margin-left: 138px;
+    text-align: center;
+}
