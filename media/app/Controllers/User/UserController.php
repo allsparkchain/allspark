@@ -26,51 +26,36 @@ class UserController extends Controller
      * @Get("/accountInfo", as="s_user_accountInfo")
      */
     public function accountInfo() {
+
+        $zmtpc_host = config('params.pc_host');
         //邀请码
         $code = $this->getRecommendCode();
-        return view("User.accountInfo")->with('code',$code);
+        return view("User.accountInfo")->with('inviteUrl',$zmtpc_host.$code);
     }
 
     /**
-     * 订单页面
-     * @Get("/orderList", as="s_user_orderList")
+     * 渠道数据页面
+     * @Get("/channelData", as="s_user_channelData")
      */
-    public function orderList() {
-        return view("User.orderList");
+    public function channelData() {
+        return view("User.channelData");
     }
 
     /**
-     * 商品 数据页面1
-     * @Get("/procData", as="s_user_procData")
+     * 渠道数据用户详情页面2
+     * @Get("/channelUserDetail", as="s_user_channelUserDetail")
      */
-    public function procData() {
-        return view("User.procData");
+    public function channelUserDetail() {
+        return view("User.channelUserDetail");
     }
 
     /**
-     * 商品详情页面  数据页面2
-     * @Get("/procDetail", as="s_user_procDetail")
+     * 渠道数据用户文章详情页面3
+     * @Get("/channelUserArticleDetail", as="s_user_channelUserArticleDetail")
      */
-    public function procDetail() {
-        return view("User.procDetail");
+    public function channelUserArticleDetail() {
+        return view("User.channelUserArticleDetail");
     }
-
-    /**
-     * 内容数据页面 数据页面3
-     * @Get("/procContentDetail", as="s_user_procContentDetail")
-     */
-    public function procContentDetail() {
-        return view("User.procContentDetail");
-    }
-
-    /**
-     * 结算明细页面
-     * @Get("/settledDetailFlow", as="s_user_settledDetailFlow")
-     */
-    public function settledDetailFlow() {
-        return view("User.settledDetailFlow");
-    }
-
 
     /**
      * 佣金提现页面1
@@ -104,6 +89,18 @@ class UserController extends Controller
         return view("User.accountSetting")->with('mobile',$this->getUserName());
     }
 
+    /**
+     * 好友邀请页面
+     * @Get("/invitePage", as="s_user_invitePage")
+     */
+    public function invitePage() {
+
+        $zmtpc_host = config('params.pc_host');
+        //邀请码
+        $code = $this->getRecommendCode();
+        return view("User.invitePage")->with('inviteUrl',$zmtpc_host.$code);
+    }
+
 
     //apiPost
     /**
@@ -114,14 +111,12 @@ class UserController extends Controller
         try {
             $uid = $this->getUserId();
 
-
-
             $page = $request->get("page",1);
             $pagesize = $request->get("pagesize",10);
             $type = $request->get("type",1);
             $showBy = $request->get("showBy",1);
 
-            $post = Curl::post('/advertOwner/getAccountInfo', $arr = [
+            $post = Curl::post('/smedia/getSmediaAccountInfo', $arr = [
                 'uid'=> $uid,
                 'type' => $type,
                 'showBy' => $showBy,
@@ -139,232 +134,6 @@ class UserController extends Controller
     }
 
     /**
-     * 下载订单数据
-     * @Get("/DownLoadOrderlist", as="s_user_DownLoadOrderlist")
-     */
-    public function DownLoadOrderlist(Request $request) {
-
-        try {
-            $uid = $this->getUserId();
-
-
-            $download = $request->get("download",false);
-
-            //初始化数据
-
-            $procname = $request->get("procname",'');
-            $page = $request->get("page",1);
-            $pagesize = $request->get("pagesize",10);
-
-            $starttime = $request->get("starttime",'');
-            $endtime = $request->get("endtime",'');
-            $status = $request->get("status",'');
-
-
-//            $uid = 24;
-
-
-            if(strlen($starttime)>0){
-                $starttime = strtotime(date('Y-m-d',strtotime($starttime)));
-            }
-            if(strlen($starttime)>0){
-                $starttime = strtotime(date('Y-m-d',strtotime($starttime)));
-            }
-            if(strlen($endtime)>0){
-                $endtime = strtotime(date('Y-m-d 23:59:59',strtotime($endtime)));
-            }
-
-            if(is_null($starttime) || strlen($starttime)<=0){
-                $starttime = 0;
-            }
-            if(is_null($endtime)  || strlen($endtime)<=0){
-                $endtime = 0;
-            }
-
-
-            $delivery = 0;
-            if(strlen($status)>0){
-                if($status == 'send'){
-                    $delivery = 1;
-                }
-                if($status == 'notsend'){
-                    $delivery = 2;
-                }
-            }
-
-            if(is_null($status) || strlen($status)<=0){
-                $delivery = 0;
-            }
-            $post = Curl::post('/advertOwner/getAdvertRelativeOrderList', $arr = [
-                'advert_relative_id'=> $uid,
-                'starttime' => $starttime,
-                'endtime' => $endtime,
-                'page' =>$page,
-                'pagesize'=>$pagesize,
-                'procname'=>$procname,
-                'status'=>$delivery,
-            ]);
-            if(isset($post['data']) && $post['data']['count'] >0){
-                foreach ($post['data']['data'] as $key=>$value){
-                    $info = json_decode($value['contents'],true);
-                    $post['data']['data'][$key]['addresss'] = $info['userAddress'];
-                }
-            }
-
-
-            if($download && count($post['data']['data'])>0){
-                $data = $post['data']['data'];
-                \Excel::create('订单数据',function($excel) use ($data){
-                    $excel->sheet('score', function($sheet) use ($data){
-                        $zarray=[];
-                        foreach ($data as $key=> $value){
-                            $zarray[$key]['订单号']         = $value['order_number'];
-                            $zarray[$key]['时间']         =  date('Y-m-d H:i:s',$value['add_time']);
-                            $zarray[$key]['产品名']  = $value['product_name'];
-//                            if(is_array())
-                            $zarray[$key]['地址']         = implode(',',$value['addresss']);
-                            $zarray[$key]['数量']      = $value['number'];
-                            $zarray[$key]['状态']         = $value['show_status'];
-                        }
-                        $sheet->fromArray($zarray);
-                    });
-                })->export('xls');
-                exit;
-
-            }else{
-                redirect(Route('s_user_getOrderList'));
-            }
-            return new JsonResponse($post);
-        } catch (ApiException $e) {
-            return new JsonResponse([
-                "status"=>$e->getCode(),
-                "message"=>$e->getMessage(),
-            ]);
-        }
-    }
-    /**
-     * 获取账户订单列表
-     * @Post("/getOrderList", as="s_user_getOrderList")
-     */
-    public function getOrderList(Request $request) {
-        try {
-            $uid = $this->getUserId();
-            $procname = $request->get("procname",'');
-            $page = $request->get("page",1);
-            $pagesize = $request->get("pagesize",10);
-
-            $starttime = $request->get("starttime",'');
-            $endtime = $request->get("endtime",'');
-            $status = $request->get("status",'');
-
-
-//            $uid = 24;
-
-
-            if(strlen($starttime)>0){
-                $starttime = strtotime(date('Y-m-d',strtotime($starttime)));
-            }
-
-            if(strlen($endtime)>0){
-                $endtime = strtotime(date('Y-m-d 23:59:59',strtotime($endtime)));
-            }
-
-            if(is_null($starttime)){
-                $starttime = 0;
-            }
-            if(is_null($endtime)){
-                $endtime = 0;
-            }
-
-
-            $delivery = 0;
-            if(strlen($status)>0){
-                if($status == 'send'){
-                    $delivery = 1;
-                }
-                if($status == 'notsend'){
-                    $delivery = 2;
-                }
-            }
-
-            if(is_null($status)){
-                $delivery = 0;
-            }
-
-//            var_dump(
-//                ['advert_relative_id'=> $uid,
-//                'starttime' => $starttime,
-//                'endtime' => $endtime,
-//                'page' =>$page,
-//                'pagesize'=>$pagesize,
-//                'procname'=>$procname,
-//                'status'=>$delivery,
-//            ]);die;
-
-            $post = Curl::post('/advertOwner/getAdvertRelativeOrderList', $arr = [
-                'advert_relative_id'=> $uid,
-                'starttime' => $starttime,
-                'endtime' => $endtime,
-                'page' =>$page,
-                'pagesize'=>$pagesize,
-                'procname'=>$procname,
-                'status'=>$delivery,
-            ]);
-            if(isset($post['data']) && $post['data']['count'] >0){
-                foreach ($post['data']['data'] as $key=>$value){
-                    $info = json_decode($value['contents'],true);
-                    $post['data']['data'][$key]['address'] = $info['userAddress'];
-                }
-            }
-
-            return new JsonResponse($post);
-        } catch (ApiException $e) {
-            return new JsonResponse([
-                "status"=>$e->getCode(),
-                "message"=>$e->getMessage(),
-            ]);
-        }
-    }
-
-    /**
-     * 更改账户下的订单状态
-     * @Post("/changeOrderStatus", as="s_user_changeOrderStatus")
-     */
-    public function changeOrderStatus(Request $request) {
-        try {
-            $uid = $this->getUserId();
-            $prod_id = $request->get("prodIds",'');
-
-            if(is_null($prod_id)){
-                $prod_id = '';
-            }
-
-//            $uid = 24;
-
-
-//            var_dump($prod_id2);die;
-            if(is_array($prod_id)){
-                $ss = implode(',',$prod_id);
-            }
-
-            $post = Curl::post('/advertOwner/changeAdvertRelativeOrderStatus', $arr = [
-                'advert_relative_id'=> $uid,
-                'product_order_id_arr'=>$ss,
-                'status'=>2,
-            ]);
-
-            return new JsonResponse($post);
-        } catch (ApiException $e) {
-            return new JsonResponse([
-                "status"=>$e->getCode(),
-                "message"=>$e->getMessage(),
-            ]);
-        }
-    }
-
-
-
-    /**
      * 下载渠道数据1
      * @Get("/DownLoadCommissionSettlement", as="s_user_DownLoadCommissionSettlement")
      */
@@ -373,6 +142,7 @@ class UserController extends Controller
         try {
             $uid = $this->getUserId();
 
+//            $uid = 94;
 
             $download = $request->get("download",false);
 
@@ -463,10 +233,11 @@ class UserController extends Controller
         try {
             $uid = $this->getUserId();
 
-//            $uid = 137;
+//            $uid = 94;
 
             //初始化数据
             $now = getCurrentTime();
+            $today = date('Y-m-d',$now);
             $starttime = 0;
             $endtime = 0;
             $order = '';
@@ -481,17 +252,17 @@ class UserController extends Controller
             $sort = $request->get("sort",'asc');//asc,desc
             //时间过滤
             if($time_fliter == 'recent_30'){
-                $starttime = strtotime('-30 day',$now);
+                $starttime = strtotime('-30 day',strtotime($today));
             }
             if($time_fliter == 'recent_7'){
-                $starttime = strtotime('-7 day',$now);
+                $starttime = strtotime('-7 day',strtotime($today));
             }
             if($time_fliter == 'today'){
-                $starttime = strtotime(date('Y-m-d',$now));
+                $starttime = strtotime(strtotime($today));
             }
             //排序
-            if($type == 'orderaccount'){
-                $order = json_encode(['orderaccount'=>$sort]);
+            if($type == 'add_time'){
+                $order = json_encode(['times'=>$sort]);
             }
             if($type == 'account'){
                 $order = json_encode(['account'=>$sort]);
@@ -503,8 +274,17 @@ class UserController extends Controller
                 $order = json_encode(['nums'=>$sort]);
             }
 
-            $post = Curl::post('/advertOwner/getAdvertRelativeProList', $arr = [
-                'advert_relative_id'=> $uid,
+//            var_dump($arr = [
+//                'uid'=> $uid,
+//                'name' => $name,
+//                'order' => $order,
+//                'page' =>$page,
+//                'pagesize'=>$pagesize,
+//                'starttime'=>$starttime,
+//                'endtime'=>$endtime,
+//            ]);die;
+            $post = Curl::post('/smedia/getSmediaList', $arr = [
+                'uid'=> $uid,
                 'name' => $name,
                 'order' => $order,
                 'page' =>$page,
@@ -523,7 +303,7 @@ class UserController extends Controller
     }
 
     /**
-     * 商品详情页面  数据页面2
+     * 获取渠道数据 个人详情页面 2
      * @Post("/getUserDetail", as="s_user_getUserDetail")
      */
     public function getUserDetail(Request $request) {
@@ -537,14 +317,12 @@ class UserController extends Controller
             $order = '';
 
 
-            $pro_id = $request->get("pro_id",1);
+            $pass_uid = $request->get("invited_uid",1);
             $name = $request->get("name",'');
 
 
-//            $uid = 136;
-//            $pro_id= 124;////136->124->41 137->123->37
-
-
+//            $uid = 94;
+//            $pass_uid= 9;//invited_uid 9,18
 
             $page = $request->get("page",1);
             $pagesize = $request->get("pagesize",10);
@@ -564,19 +342,22 @@ class UserController extends Controller
                 $starttime = strtotime(date('Y-m-d',$now));
             }
             //排序
-            if($type == 'nums'){
-                $order = json_encode(['nums'=>$sort]);
-            }
-            if($type == 'orderaccount'){
-                $order = json_encode(['orderaccount'=>$sort]);
+            if($type == 'buytransfer'){
+                $order = json_encode(['buytransfer'=>$sort]);
             }
             if($type == 'account'){
                 $order = json_encode(['account'=>$sort]);
             }
+            if($type == 'commission'){
+                $order = json_encode(['commission'=>$sort]);
+            }
+            if($type == 'nums'){
+                $order = json_encode(['nums'=>$sort]);
+            }
 
-            $post = Curl::post('/advertOwner/getAdvertRelativeProDetail', $arr = [
-                'advert_relative_id'=> $uid,
-                'pro_id' => $pro_id,
+            $post = Curl::post('/smedia/getSmediaUserArticleList', $arr = [
+                'invited_uid'=> $pass_uid,
+                'invite_uid' => $uid,
                 'name' => $name,
                 'order' => $order,
                 'page' =>$page,
@@ -594,7 +375,7 @@ class UserController extends Controller
     }
 
     /**
-     * 内容数据页面 数据页面3
+     * 获取渠道数据 文章订单详情页面 3
      * @Post("/getArticleDetail", as="s_user_getArticleDetail")
      */
     public function getArticleDetail(Request $request) {
@@ -609,10 +390,11 @@ class UserController extends Controller
 
 
             $spread_id = $request->get("spread_id",1);
+            $pass_uid = $request->get("invited_uid",1);
 
 
-//            $uid = 137;
-////            $pass_uid= 9;//136->124->41 137->123->37
+//            $uid = 94;
+//            $pass_uid= 9;//invited_uid 9,18
 //            $spread_id=37;
 
             $page = $request->get("page",1);
@@ -634,21 +416,21 @@ class UserController extends Controller
             }
             //排序
             if($type == 'numbers'){
-                $order = json_encode(['number'=>$sort]);
+                $order = json_encode(['numbers'=>$sort]);
             }
             if($type == 'account'){
-                $order = json_encode(['orderaccount'=>$sort]);
-            }
-            if($type == 'commission'){
                 $order = json_encode(['account'=>$sort]);
             }
-//            if($type == 'nums'){
-//                $order = json_encode(['nums'=>$sort]);
-//            }
+            if($type == 'commission'){
+                $order = json_encode(['commission'=>$sort]);
+            }
+            if($type == 'nums'){
+                $order = json_encode(['nums'=>$sort]);
+            }
 
-            $post = Curl::post('/advertOwner/getAdvertRelativeProOrderDetail', $arr = [
-                'advert_relative_id'=> $uid,
-//                'invite_uid' => $uid,
+            $post = Curl::post('/smedia/getSmediaUserArticleDetail', $arr = [
+                'invited_uid'=> $pass_uid,
+                'invite_uid' => $uid,
                 'spread_id' => $spread_id,
                 'order' => $order,
                 'page' =>$page,
@@ -666,68 +448,21 @@ class UserController extends Controller
     }
 
     /**
-     * 获取结算明细页面数据
-     * @Post("/getSettledDetailFlow", as="s_user_getSettledDetailFlow")
-     */
-    public function getSettledDetailFlow(Request $request) {
-        try {
-            $uid = $this->getUserId();
-
-
-//            $uid = 136;
-
-            //时间过滤
-            $starttime = $request->get("starttime",'');
-            $endtime = $request->get("endtime",'');
-
-            $name = $request->get("name",'');
-
-            $page = $request->get("page",1);
-            $pagesize = $request->get("pagesize",10);
-
-            if(strlen($starttime) >0){
-                $starttime = strtotime(date('Y-m-d',strtotime($starttime)));
-            }else{
-                $starttime = 0;
-            }
-
-            if(strlen($endtime) >0){
-                $endtime = strtotime(date('Y-m-d 23:59:59',strtotime($endtime)));
-            }else{
-                $endtime = 0;
-            }
-
-            $post = Curl::post('/advertOwner/settledDetailFlow', $arr = [
-                'advert_relative_id'=> $uid,
-                'starttime' =>$starttime,
-                'endtime' =>$endtime,
-                'name'=>$name,
-                'page' =>$page,
-                'pagesize'=>$pagesize,
-
-            ]);
-            return new JsonResponse($post);
-        } catch (ApiException $e) {
-            return new JsonResponse([
-                "status"=>$e->getCode(),
-                "message"=>$e->getMessage(),
-            ]);
-        }
-    }
-
-    /**
      * 获取佣金提现页面数据1
      * @Post("/getUserWithdrawPage", as="s_user_getUserWithdrawPage")
      */
     public function getUserWithdrawPage(Request $request) {
         try {
             $uid = $this->getUserId();
-
+            $page = $request->get("page",1);
+            $pagesize = $request->get("pagesize",10);
 
 //            $uid = 94;
 
             $post = Curl::post('/smedia/getSmediaUserWithdrawPage', $arr = [
                 'advert_id'=> $uid,
+                'page' =>$page,
+                'pagesize'=>$pagesize,
             ]);
             return new JsonResponse($post);
         } catch (ApiException $e) {
@@ -770,7 +505,7 @@ class UserController extends Controller
                 $endtime = 0;
             }
 
-            $post = Curl::post('/advertOwner/settledDetailFlow', $arr = [
+            $post = Curl::post('/smedia/getUnsettledComissionList', $arr = [
                 'advert_id'=> $uid,
                 'starttime' =>$starttime,
                 'endtime' =>$endtime,
@@ -802,7 +537,7 @@ class UserController extends Controller
             $page = $request->get("page",1);
             $pagesize = $request->get("pagesize",10);
 
-            $post = Curl::post('/advert/getSmediaUserAccFLowPage', $arr = [
+            $post = Curl::post('/smedia/getSmediaUserAccFLowPage', $arr = [
                 'advert_id'=> $uid,
                 'page' =>$page,
                 'pagesize'=>$pagesize,
@@ -839,87 +574,34 @@ class UserController extends Controller
 
     }
 
-    /**
-     * 获取银行卡列表数据
-     * @Post("/getUserBankRelative", as="s_user_getUserBankRelative")
-     */
-    public function getUserBankRelative(Request $request) {
-        try {
 
-            $id = $request->get("id",0);
-            $post = Curl::post('/user/getUserBankRelative',
-                [
-                    // 'id' => $id
-                ]
-            );
-            return new JsonResponse($post);
-        } catch (ApiException $e) {
-            return new JsonResponse([
-                "status"=>$e->getCode(),
-                "message"=>$e->getMessage(),
-            ]);
-        }
-    }
+
 
     /**
      * 绑定银行卡
      * @Post("/bindBankCard", as="s_user_bindBankCard")
-     * @param int $bind_realname 真实姓名
-     * @param int $code 短信验证码
-     * @param int $order_number
-     * @param int $bind_idnumber 身份证号码
-     * @param int $bind_banknumber 银行卡号
-     * @param int $bind_mobile 手机号码
-     * @param int $bank_relative 银行编号
-     * @param int $bank_id 银行编号
-     * @param int $province_id 支行省份
-     * @param int $city_id 支行城市
-     * @param int $bank_name 支行名称
-     * @param string $sub_branch_id 支行编号
      */
     public function bindBankCard(Request $request) {
         try {
-            $realname = $request->get('bind_realname', '');
-            $code = $request->get('code', '');
-            $idnumber = $request->get('bind_idnumber', '');
-            $bind_banknumber = $request->get('bind_banknumber', '');
-            $bind_mobile = $request->get('bind_mobile', '');
-            $bank_relative = $request->get('bank_relative', 0);
-            $bank_id = $request->get('bank_id', '');
-            $province_id = $request->get('province_id', 0);
-            $city_id = $request->get('city_id', 0);
-            $bank_name = $request->get('bank_name', '');
-            $sub_branch_id = $request->get('sub_branch_id', '');
+            $realname = $request->get("bind_realname",'');
+            $idnumber = $request->get("bind_idnumber",'');
+            $bind_banknumber = $request->get("bind_banknumber",'');
+            $bind_mobile = $request->get("bind_mobile",'');
+            $bank_relative = $request->get("bank_relative",0);
 
-            $validator = \Validator::make($request->all(), trans('custom_validator.bindBankCard.rules'),
-                trans('custom_validator.bindBankCard.message'));
-            if ($validator->fails()) {
-                return new JsonResponse(['status'=>40, 'message'=> current($validator->errors()->all())]);
+            if(strlen($realname)<=0  || strlen($bind_banknumber)<=0){
+                return new JsonResponse(['status'=>333,'message'=>'传递参数非法或者缺少参数']);
             }
-
-            //验证短信验证码
-            $order_number = json_decode(session('change'), true);
-            $order_number = $order_number ? $order_number['order_number'] : '';
-            $post = Curl::post('utils/message/verificationSms', [
-                'order_number' => $order_number,
-                'code' => $code,
-                'mobile' => $bind_mobile,
-                'type' => 9,
-            ]);
-            if ($post['status'] != 200) return new JsonResponse($post);
-
-            //绑定银行卡
-            if (! $sub_branch_id) $sub_branch_id = $bank_id . $province_id . $city_id;
-
+    
             $post = Curl::post('/user/bindBankCard', [
                 'realname' => $realname,
-                'idnumber' => $idnumber,
+                'idnumber' => '001',
                 'banknumber' => $bind_banknumber,
-                'mobile' => $bind_mobile,
+                'mobile' => '001',
                 'bank_relative'=>$bank_relative,
-                'uid' => $this->getUserId(),
-                'sub_branch_name' => $bank_name,
-                'sub_branch_id' => $sub_branch_id,
+                'sub_branch_name' => '支行信息',
+                'sub_branch_id' => '10011111',
+                'uid' => $this->getUserId()
             ]);
             $aa['ids'] = $post['data']['id'];
             $aa['banknumbs'] = $post['data']['banknumber'];
@@ -932,6 +614,8 @@ class UserController extends Controller
                 "message"=>$e->getMessage(),
             ]);
         }
+
+
     }
 
     /**
@@ -1197,6 +881,7 @@ class UserController extends Controller
                 'uid' => $this->getUserId(),
                 'bank_id' => $bank_id,
                 'account' => $account,
+                'account_prop'=>2,
                 'order_number' => Arr::get($session, 'order_number', ''),
             ]);
 
@@ -1204,6 +889,52 @@ class UserController extends Controller
             $data = $post['data'];
             //unset($post['data']);
             return new JsonResponse($data);
+        } catch (ApiException $e) {
+
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * 获取银行卡列表数据
+     * @Post("/getUserBankRelative", as="s_user_getUserBankRelative")
+     */
+    public function getUserBankRelative(Request $request) {
+        try {
+
+            $id = $request->get("id",0);
+            $post = Curl::post('/user/getUserBankRelative',
+                [
+                    //'id' => $id
+                ]
+            );
+            return new JsonResponse($post);
+        } catch (ApiException $e) {
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * 获取实名信息
+     * @Post("/getAuthInfo", as="s_user_getAuthInfo")
+     */
+    public function getAuthInfo(Request $request) {
+        try {
+
+            $post = Curl::post('/user/getAuthInfo', [
+                'uid' => $this->getUserId(),
+            ]);
+
+
+//            $data = $post['data'];
+            //unset($post['data']);
+            return new JsonResponse($post);
         } catch (ApiException $e) {
 
             return new JsonResponse([
@@ -1329,30 +1060,6 @@ class UserController extends Controller
 
 //            $data = $post['data'];
             //unset($post['data']);
-        } catch (ApiException $e) {
-
-            return new JsonResponse([
-                "status"=>$e->getCode(),
-                "message"=>$e->getMessage(),
-            ]);
-        }
-    }
-
-    /**
-     * 获取实名信息
-     * @Post("/getAuthInfo", as="s_user_getAuthInfo")
-     */
-    public function getAuthInfo(Request $request) {
-        try {
-
-            $post = Curl::post('/user/getAuthInfo', [
-                'uid' => $this->getUserId(),
-            ]);
-
-
-//            $data = $post['data'];
-            //unset($post['data']);
-            return new JsonResponse($post);
         } catch (ApiException $e) {
 
             return new JsonResponse([

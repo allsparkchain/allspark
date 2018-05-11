@@ -414,7 +414,7 @@ class ArticleController
             return $this->respone($e->getCode(), $e->getMessage());
         }
     }
-
+   
     /**
      * 图文编辑提交
      * @route POST /editImgTitle
@@ -446,6 +446,66 @@ class ArticleController
 
         } catch (\Exception $e) {
             return $this->respone($e->getCode(), $e->getMessage());
+        }
+    }
+
+    /**
+     * 文章列表页面Ajax
+     * @Post("/getActicleList", as="s_aricle_getActicleList")
+     */
+    public function getActicleList(Request $request) {
+        try {
+
+            $page = $request->get("page",1);
+            $pagesize = $request->get("pagesize",10);
+            $category_id = $request->get("category_id",0);
+            $region_id = $request->get("region_id",0);
+
+            $where['t_article.status'] = 1;
+            $where['t_product.status'] = 1;
+            $arr = [
+                'wheres' => json_encode($where),
+            ];
+            if($category_id > 0){
+//                $where['t_article_category_relate.category_id'] = $category_id;
+                $where['t_article_category_relate.category_id'] = $category_id;
+            }
+            if($page >0){
+                $arr['page'] = $page;
+            }
+            if($pagesize >0){
+                $arr['pagesize'] = $pagesize;
+            }
+            if($region_id >0){
+                $arr['region_id'] = $region_id;
+            }
+
+
+            $post = getRedisData('getActicleList'.md5(json_encode($request->all())),'/article/getArticleWithProductList',$arr);
+
+            if($post['data']['count']>0){
+                foreach ($post['data']['data'] as $key =>$val){
+//                    var_dump($val);die;
+                    $post['data']['data'][$key]['time_tranx'] = time_tranx($val['add_time']);
+
+//                    $post['data']['data'][$key]['percentKey'] = (isset($val['percent_arr']['mode_2']['percent']) && $val['percent_arr']['mode_2']['percent']>0)?
+//                        number_format($val['percent_arr']['mode_2']['percent'],2).'%'  : number_format($val['percent_arr']['mode_2']['account'],2);
+
+                    $post['data']['data'][$key]['percentKey'] = (isset($val['percent_arr']['mode_2']['percent']) && $val['percent_arr']['mode_2']['percent']>0)?
+                        number_format($val['percent_arr']['mode_2']['percent'] * $val['selling_price'] /100 ,2)  : number_format($val['percent_arr']['mode_2']['account'],2);
+
+                }
+            }
+//            foreach ($post['data']['data'] as $key =>$val){
+//                $post['data']['data'][$key]['time_tranx'] = time_tranx($val['add_time']);
+//                $post['data']['data'][$key]['percentKey'] = isset($val['percent_arr']['mode_2']['percent'])?$val['percent_arr']['mode_2']['percent']:0;
+//            }
+            return new JsonResponse($post);
+        } catch (ApiException $e) {
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+            ]);
         }
     }
 }
