@@ -627,6 +627,231 @@ class ArticleController
         }
     }
 
+    /**
+     * @Get("/creationLists", as="s_article_creation_lists")
+     * @Post("/creationLists", as="s_article_creation_lists")
+     */
+    public function creationLists(Request $request){
+        if ($request->ajax()) {
+
+            $data = [
+                'page' => $request->get('page', 1),
+                'pagesize'=>$request->get('pagesize', 10),
+                'name'=>$request->get('name', ''),
+                'adminlist' => 1
+            ];
+            if( $request->get('status') > 0){
+                $data['status'] = $request->get('status');
+            }
+            $data = Curl::post('/article/creationList',
+                $data
+            );
+
+            $return = [
+                'initEcho' => 1,
+                'iTotalRecords' => $data['data']['count'],
+                'iTotalDisplayRecords' => $data['data']['count'],
+                'aaData' => $data['data']['data'],
+            ];
+            return new JsonResponse($return);
+        }
+
+        return view("Article.creationList");
+    }
+
+    /**
+     *
+     * @Post("/changeStatus", as="s_article_change_status")
+     */
+    public function changeStatus(Request $request) {
+
+        if ($request->ajax()) {
+            $data = Curl::post('/article/changeStatus',
+                [
+                    'article_id' => $request->get('article_id', 0),
+                    'status'=>$request->get('status', 1),
+                ]
+            );
+            return new JsonResponse($data);
+        }
+        return false;
+    }
+
+
+    /**
+     * @Get("/addsecond", as="s_article_addsecond")
+     *
+     */
+    public function addsecond(Request $request){
+        try {
+//            $articlecategorylist = Curl::post('/article/getArticleCategoryList', ['status' => 1]);
+//            $articlecategorylist = $articlecategorylist['data']['data'];
+            $product_categorylist = Curl::post('/productCategory/getProductCategoryList',['status'=>1]);
+            $product_categorylist = $product_categorylist['data']['data'];
+
+//            $industry_media_list = Curl::post('/industry/getLists', ['status' => 1,'type'=>2]);
+            $industry_media_list = Curl::post('/industryCategory/getLists', ['status' => 1,'type'=>2]);
+            $industry_media_list = $industry_media_list['data']['data'];
+        } catch (Exception $e) {
+            $product_categorylist = [];
+        }
+        try {
+            $productList = Curl::post('/product/wrtiergetGoodsList',['pagesize'=>100]);
+            $productList = $productList['data']['data'];
+        }catch (Exception $e){
+            $productList = [];
+        }
+
+        foreach ($productList as $k=>$v){
+            $percent = -1;
+            $account = -1;
+            $combine = -1;
+            if(strlen($v['display_to_writer'])>0){
+                $percents = json_decode($v['percent'],true);
+                $display = json_decode($v['display_to_writer'],true);
+                foreach ($percents as $item) {
+                    if($item['type'] == 1  && $display[$item['type']]>0 ){
+                        $percent = $item['contents']['percent'];
+                    }
+                    if($item['type'] == 2  && $display[$item['type']]>0 ){
+                        $account = $item['contents']['account'];
+                    }
+                    if($item['type'] == 3  && $display[$item['type']]>0 ){
+                        $combine = 'percent:'.$item['contents']['percent'].' cash:'.$item['contents']['account'];
+                    }
+                }
+            }
+            $productList[$k]['percent'] = $percent;
+            $productList[$k]['account'] = $account;
+            $productList[$k]['combine'] = $combine;
+        }
+
+        return view("Article.add")->with('industry_media_list',$industry_media_list)
+            ->with('productList',$productList);
+    }
+
+    /**
+     * @Post("/save", as="s_article_save")
+     */
+    public function saveGoods(Request $request) {
+        session_start();
+        $wxImgList =  isset($_SESSION['wxImgList'])?json_decode($_SESSION['wxImgList'],true):'';
+
+        $this->validate($request, [
+            'name' => 'required',
+            'content' => 'required',
+            'summary' => 'required',
+            'article_product_id' => 'required',
+            'spiltway' => 'required'
+        ]);
+        $content = $request->get('content');
+        if($wxImgList) {
+
+            foreach ($wxImgList as $value) {
+                $content = str_replace(html_entity_decode($value['source']),$value['url'],$content);
+            }
+        }
+        $paramer = $request->all();
+        $paramer['content'] = $content;
+
+        $data = Curl::post('/article/add',
+            $paramer
+        );
+        if($data['status'] != 200){
+            return back()->withErrors($data['message']);
+        }else{
+            return redirect(route('s_article_lists'))->with('addsuccess', 'success');
+        }
+    }
+
+    /**
+     * @Get("/edit", as="s_article_edit")
+     */
+    public function edit(Request $request){
+
+        try {
+//            $articlecategorylist = Curl::post('/article/getArticleCategoryList', ['status' => 1]);
+//            $articlecategorylist = $articlecategorylist['data']['data'];
+
+//            $product_categorylist = Curl::post('/productCategory/getProductCategoryList',['status'=>1]);
+//            $product_categorylist = $product_categorylist['data']['data'];
+
+//            $industry_media_list = Curl::post('/industry/getLists', ['status' => 1,'type'=>2]);
+//            $industry_media_list = $industry_media_list['data']['data'];
+
+            $industry_media_list = Curl::post('/industryCategory/getLists',
+                [
+                    'status'=>1,
+                    'type'=>2,
+                    'order'=>'{"status":"ASC","order":"DESC"}'
+                ]
+            );
+            $industry_media_list = $industry_media_list['data']['data'];
+
+
+        } catch (Exception $e) {
+            $articlecategorylist = [];
+            $product_categorylist = [];
+            $industry_media_list = [];
+        }
+        $data = Curl::post('/article/getArticle',
+            ['articleid'=>$request->get('articleid', 1)]
+        );
+        $percents = json_decode($data['data']['percent'],true);
+        $split_way = -1;
+        $percent = 0;
+
+        foreach ($percents as $item) {
+            if($item['mode'] == 1){
+                if(count($item['contents']) >1){
+                    $split_way = 3;
+//                    $percent = json_encode($item['contents']);
+                    $percent = $item['contents']['percent'].'% + '.$item['contents']['account'].'元';
+                }else{
+                    if(key_exists('percent',$item['contents'])){
+                        $split_way = 1;
+                        $percent = $item['contents']['percent'].'%';
+                    }else{
+                        $split_way = 2;
+                        $percent = $item['contents']['account'].'元';
+                    }
+                }
+                break;
+            }
+        }
+//        if($split_way && $percent){
+        $data['data']['split_way'] = $split_way;
+        $data['data']['percent'] = $percent;
+//        }
+        $data['data']['content'] = str_replace(chr(10),'<br>',$data['data']['content']);
+        $data['data']['content'] = str_replace(chr(13),'<br>',$data['data']['content']);
+        return view("Article.edit")
+            ->with('res',$data['data'])
+            ->with('industry_media_list',$industry_media_list);
+    }
+
+    /**
+     * @Get("/articleLook", as="s_article_look")
+     */
+    public function articleLook(Request $request){
+
+
+        $data = Curl::post('/article/getArticle',
+            ['articleid'=>$request->get('articleid', 1)]
+        );
+
+        $data2 = Curl::post('/article/articleLook',
+            ['article_id'=>$request->get('articleid', 1)]
+        );
+
+
+        $data['data']['content'] = str_replace(chr(10),'<br>',$data['data']['content']);
+        $data['data']['content'] = str_replace(chr(13),'<br>',$data['data']['content']);
+        return view("Article.articleLook")
+            ->with('res',$data['data'])->with('data',$data2['data']);
+    }
+
+
 
     function ShengYu_Tian_Shi_Fen($unixEndTime=0)
     {
