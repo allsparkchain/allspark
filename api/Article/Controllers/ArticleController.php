@@ -448,4 +448,222 @@ class ArticleController
             return $this->respone($e->getCode(), $e->getMessage());
         }
     }
+
+    /**
+     * 文章列表页面Ajax
+     * @Post("/getActicleList", as="s_aricle_getActicleList")
+     */
+    public function getActicleList(Request $request) {
+        try {
+
+            $page = $request->get("page",1);
+            $pagesize = $request->get("pagesize",10);
+            $category_id = $request->get("category_id",0);
+            $region_id = $request->get("region_id",0);
+
+            $where['t_article.status'] = 1;
+            $where['t_product.status'] = 1;
+            $arr = [
+                'wheres' => json_encode($where),
+            ];
+            if($category_id > 0){
+//                $where['t_article_category_relate.category_id'] = $category_id;
+                $where['t_article_category_relate.category_id'] = $category_id;
+            }
+            if($page >0){
+                $arr['page'] = $page;
+            }
+            if($pagesize >0){
+                $arr['pagesize'] = $pagesize;
+            }
+            if($region_id >0){
+                $arr['region_id'] = $region_id;
+            }
+
+
+            $post = getRedisData('getActicleList'.md5(json_encode($request->all())),'/article/getArticleWithProductList',$arr);
+
+            if($post['data']['count']>0){
+                foreach ($post['data']['data'] as $key =>$val){
+//                    var_dump($val);die;
+                    $post['data']['data'][$key]['time_tranx'] = time_tranx($val['add_time']);
+
+//                    $post['data']['data'][$key]['percentKey'] = (isset($val['percent_arr']['mode_2']['percent']) && $val['percent_arr']['mode_2']['percent']>0)?
+//                        number_format($val['percent_arr']['mode_2']['percent'],2).'%'  : number_format($val['percent_arr']['mode_2']['account'],2);
+
+                    $post['data']['data'][$key]['percentKey'] = (isset($val['percent_arr']['mode_2']['percent']) && $val['percent_arr']['mode_2']['percent']>0)?
+                        number_format($val['percent_arr']['mode_2']['percent'] * $val['selling_price'] /100 ,2)  : number_format($val['percent_arr']['mode_2']['account'],2);
+
+                }
+            }
+//            foreach ($post['data']['data'] as $key =>$val){
+//                $post['data']['data'][$key]['time_tranx'] = time_tranx($val['add_time']);
+//                $post['data']['data'][$key]['percentKey'] = isset($val['percent_arr']['mode_2']['percent'])?$val['percent_arr']['mode_2']['percent']:0;
+//            }
+            return new JsonResponse($post);
+        } catch (ApiException $e) {
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     *
+     * @Post("/articleAdd", as="s_article_add")
+     * @Middleware("auth")
+     */
+    public function articleAdd(Request $request) {
+        try {
+
+            $paramer['id'] = $request->get('id', 0);
+            $paramer['name'] = $request->get('name');
+            $paramer['content'] = $request->get('content');
+            $paramer['article_product_id'] = $request->get('product_id');
+            $paramer['spiltway'] = 3;
+            $paramer['author'] = $this->getUserId();
+
+            $paramer['article_category_id'] = $request->get('article_category_id',0);
+
+            $status = $request->get('status');
+
+
+            if($status==1){
+                $paramer['status'] = 3;//发布
+            }else{
+                $paramer['status'] = 5;//草稿
+            }
+
+            if($paramer['id']){
+                $data = Curl::post('/article/editArticle',
+                    $paramer
+                );
+            }else{
+                $data = Curl::post('/article/add',
+                    $paramer
+                );
+            }
+
+
+
+            if($data['status']==200){
+                $phpPath = config('params.php_path');
+                shell_exec("nohup ".$phpPath.' '.public_path('../').'artisan command:ossUploadStript '.$data['data'].' >> /tmp/out.file 2>&1  &');
+            }
+
+            return new JsonResponse($data);
+        } catch (ApiException $e) {
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * 获得推广二维码
+     * @Post("/createSpreadQRcode", as="s_aricle_createSpreadQRcode")
+     */
+    public function createSpreadQRcode(Request $request) {
+        try {
+            $aid = $request->get("aid",-1);
+            $aprs = $request->get("aprs",-1);
+            if(intval($aid) && $aid >0){
+                $post = Curl::post('/user/createSpreadQRcode', [
+                    'aprs' => $aprs,
+                    'spreadUid' => $this->getUserId()
+                ]);
+                $data = $post['data'];
+                if($post['status']==200){
+                    if($post['data']['product_type'] == 3){
+
+                        if(stristr($post['data']['landing_page'],'?')){
+                            $post['data']['landing_page'] = $post['data']['landing_page'].'&spreadid='.$post['data']['id'].'&productid='.$post['data']['productId'].'&articleid='.$post['data']['article_id'];
+                        }else{
+                            $post['data']['landing_page'] = $post['data']['landing_page'].'?spreadid='.$post['data']['id'].'&productid='.$post['data']['productId'].'&articleid='.$post['data']['article_id'];
+                        }
+                        $post['data']['url'] = $post['data']['landing_page'];
+                    }else{
+                        $post['data']['url'] = config('params.wx_host').'User/productDetail?spreadid='.$post['data']['id'] .'&nid='.$post['data']['order_no'];
+                    }
+
+                    //$post['data']['url'] = file_get_contents('http://suo.im/api.php?url='.urlencode($post['data']['url']));
+                }
+
+//               var_dump($data);die;
+                return new JsonResponse($post);
+            }
+        } catch (ApiException $e) {
+
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * 添加所选分类
+     * @Post("/postCategoryChose", as="s_aricle_postCategoryChose")
+     */
+    public function postCategoryChose(Request $request) {
+        try {
+            $uid = $this->getUserId();
+            $category_name = $request->get("category_name",'');
+            if($uid>0 && strlen($category_name)>0 ){
+                $post = Curl::post('/article/postCategoryChose', [
+                    'uid' => $uid,
+                    'category_name' => $category_name
+                ]);
+                return new JsonResponse($post);
+            }
+        } catch (ApiException $e) {
+
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+            ]);
+        }
+    }
+
+
+    function ShengYu_Tian_Shi_Fen($unixEndTime=0)
+    {
+        if ($unixEndTime <= time()) { // 如果过了活动终止日期
+            return '已过期';
+        }
+
+        // 使用当前日期时间到活动截至日期时间的毫秒数来计算剩余天时分
+        $time = $unixEndTime - time();
+
+        $days = 0;
+        if ($time >= 86400) { // 如果大于1天
+            $days = (int)($time / 86400);
+            $time = $time % 86400; // 计算天后剩余的毫秒数
+        }
+
+        $xiaoshi = 0;
+        if ($time >= 3600) { // 如果大于1小时
+            $xiaoshi = (int)($time / 3600);
+            $time = $time % 3600; // 计算小时后剩余的毫秒数
+        }
+
+        $fen = (int)($time / 60); // 剩下的毫秒数都算作分
+
+        return $days.'天'.$xiaoshi.'时'.$fen.'分';
+    }
+
+    private function getUserId() {
+        return \Auth::getUser()->getAuthIdentifier();
+
+    }
+
+    private function getUserName() {
+        return \Auth::getUser()->getUserMobile();
+    }
+
+    private function getRecommendCode() {
+        return \Auth::getUser()->getRecommendCode();
+    }
 }

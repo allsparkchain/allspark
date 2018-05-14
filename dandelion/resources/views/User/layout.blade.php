@@ -7,157 +7,132 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="description" content="">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="manifest" href="site.webmanifest">
-    <link rel="apple-touch-icon" href="icon.png">
-    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
-    {{--<link rel="stylesheet" href="{{ mix('css/header.css') }}">--}}
-    <link rel="stylesheet" href="{{ mix('css/fonts.css') }}">
-    <link rel="stylesheet" href="{{ mix('css/nav.css') }}">
-    <link rel="stylesheet" href="{{ mix('css/mian_index.css') }}">
+    <link rel="stylesheet" href="{{ mix('css/normalize.css') }}">
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/bootstrap-datetimepicker.css">
+    <link rel="stylesheet" href="{{ mix('css/center.css') }}">
 
 
     @yield('css')
-
-    <script src="/js/vendor/jquery-3.2.1.min.js" type="text/javascript"></script>
+    <script type="text/javascript" src="/js/vue.js"></script>
+    <script src="/js/jquery.min.js" type="text/javascript"></script>
+    <script type="text/javascript" src="/js/echarts.common.min.js"></script>
+    <script type="text/javascript" src="/js/clipboard.min.js"></script>
+    {{--<script src="/js/bootstrap.min.js" type="text/javascript"></script>--}}
+    <script src="/js/bootstrap-datetimepicker.min.js" type="text/javascript" charset="UTF-8"></script>
+    <script src="/js/bootstrap-datetimepicker.zh-CN.js" type="text/javascript" charset="UTF-8"></script>
     <!--/meta 作为公共模版分离出去-->
-
-    <title>@yield('title')-蒲公英 - 让每个人所拍、所写、所分享都产生价值！</title>
+    <title>蒲公英 - @yield('title')</title>
 </head>
+<style>
+
+</style>
 <body>
-<div class="f_content" style="overflow:hidden;">
-    <div class="header_border">
-        <div class="header">
-            <div class="login">
-                <a href="{{Route('s_index_index')}}"></a>
-            </div>
-            <div class="header_navWrop">
-                <div class="header_nva">
-                    <div class="nav_list">
-                        <a href="{{Route('s_index_index')}}">首页</a>
-                        <a href="{{route('s_article_lists')}}" class="active">资讯</a>
-                        <a href="https://www.pugongying.link/jzinter" target="_blank">关于我们</a>
-                    </div>
-                    @if(strlen(\Auth::getUser()->getUserNickname()) >0)
-                        {{--登录状态--}}
-                        <div class="user_logged" style="display:block;    width: 198px;height: 70px;float: left;">
-                            <div class="userHides" >
-                                <div class="" style="float: right;line-height: 70px;width: 138px;margin-left: 60px;    cursor: pointer;">
-                                    <div class="usserImg" style="float: left; margin-top: 16px; font-size: 0; width:37px;height:37px;border-radius: 50%;"><img width="100%" height="100%" style="border-radius: 50%" src="{{\Auth::getUser()->getHeadImgurl()}}"></div>
-                                    <span style="margin-left: 13px" class="loggedname">{{\Auth::getUser()->getUserNickname()}}</span>
-                                </div>
-                            </div>
-                            <div class="user_hide" style="display: none">
-                                <span class="userAs" id="userAs" onclick="window.location.href='{{Route('s_user_accountInfo')}}'">个人中心</span>
-                                <span class="userAs" onclick="window.location.href='{{Route('s_logout')}}'">退出</span>
-                            </div>
-                        </div>
-                    @else
-                        {{--未登录状态--}}
-                        <div class="user_login" style="">
-                            <span class="spacing" onclick="window.location.href='/login'">登录</span>
-                            <i class="spacing">/</i>
-                            <span class="spacing" onclick="window.location.href='/qrRegister'">注册</span>
-                        </div>
-                    @endif
+    <header class="pgy_adminHeader">
+        <div class="pgy_adminHeader_wrap" >
+        <a href="/"><div class="pgy_adminLogo_top"></div></a>
+            <ul class="pgy_navbar">
+                <li ><a href="/">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;首页</a></li>
+                <li><a href="{{route('s_goods_lists')}}">我要创作</a></li>
+                <li><a href="{{route('s_aricle_lists')}}">我要推广</a></li>
+            </ul>
+            <div class="pgy_adminUser_top">
+                <div class="pgy_admin_top"><img src="{{\Auth::getUser()->getHeadImgurl()}}" alt=""></div>
+                <div class="pgy_admin_infos">
+
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="centent">
-        <div class="centent_left">
-            <div class="centent_left_portrait Tfont">
-                <i><img src="{{\Auth::getUser()->getHeadImgurl()}}" width="100%" height="100%">  </i>
-                <span class="user_name">{{\Auth::getUser()->getUserNickname()}}</span>
-            </div>
-            <div class="centent_left_title Tfont">
-                <ul>
-                    <li lang="accountInfo" ><a href="{{route('s_user_accountInfo')}}">账户总览</a></li>
-                    <li lang="accountCommissionSettlement"class=""><a href="{{route('s_user_accountCommissionSettlement')}}">佣金结算</a></li>
-                    <li lang="accountCommissionSettlementDetail"><a href="{{route('s_user_accountCommissionSettlementDetail')}}">佣金明细</a></li>
-                    <li lang="accountSpreadData" ><a href="{{route('s_user_accountSpreadData')}}">推广数据</a></li>
-                    <li lang="accountFreiendInvite" class=""><a href="{{route('s_user_accountFreiendInvite')}}" class="" >好友邀请</a></li>
-                    <li lang="accountSetting" ><a href="{{route('s_user_accountSetting')}}">账户设置</a></li>
-
+                <!-- <div class="pgy_admin_name"><a href="{{route('s_user_accountInfo')}}">{{\Auth::getUser()->getUserNickname()}}</a></div> -->
+                <!-- <a href="{{ route('s_logout') }}">退出</a> -->
+                <ul class="pgy_admin_downs" >
+                    <li><a href="{{route('s_user_accountInfo')}}"><i class="pgy_iconUser"></i>账户总览</a></li>
+                    <li ><a href="{{route('s_user_commissionSettlemtentDetail')}}"><i class="pgy_iconCommission"></i>账户明细</a></li>
+                    <li ><a href="{{route('s_user_articleList')}}"><i class="pgy_iconZixun"></i>我的内容</a></li>
+                    <li ><a href="{{route('s_user_spreadData')}}"><i class="pgy_iconCount"></i>推广数据</a></li>
+                    <li ><a href="{{route('s_user_inviteData')}}"><i class="pgy_iconYaoqing"></i>好友邀请</a></li>
+                    <li ><a href="{{route('s_user_accountSetting')}}"><i class="pgy_iconAccount"></i>账户设置</a></li>
+                    <li ><a href="{{ route('s_logout') }}"><i class="pgy_iconOut"></i>退出登录</a></li>
                 </ul>
             </div>
+
         </div>
-        <div class="centent_right">
+    </header>
+
+
+    <div class="ggzdl_adminWrap clearfloat">
+        <div class="ggzdl_admin_wrapLeft">
+            <div class="ggzdl_adminuser_wrap">
+                <div class="ggzdl_adminuser_avator"><img src="{{\Auth::getUser()->getHeadImgurl()}}"></div>
+                <div class="ggzdl_adminuser_name">{{\Auth::getUser()->getUserNickname()}}</div>
+            </div>
+            <ul class="ggzdl_admin_navUl">
+                <li class="@if(Request::route()->getName() == 's_user_accountInfo' || Request::route()->getName() == 's_user_withdrawPage') on @endif ">
+                    <a href="{{route('s_user_accountInfo')}}"><i class="ggzdl_iconUser1"></i>账户总览<i class="ggzdl_rightArrow"></i></a></li>
+
+                
+                <!-- <li class="@if(Request::route()->getName() == 's_user_commissionSettlemtent') on @endif ">
+                    <a href="{{route('s_user_commissionSettlemtent')}}"><i class="ggzdl_iconChannel"></i>收益结算<i class="ggzdl_rightArrow"></i></a></li> -->
+
+                <li class="@if(Request::route()->getName() == 's_user_commissionSettlemtentDetail') on @endif ">
+                    <a href="{{route('s_user_commissionSettlemtentDetail')}}"><i class="ggzdl_iconCommission"></i>账户明细<i class="ggzdl_rightArrow"></i></a></li>
+                    <li class="@if(Request::route()->getName() == 's_user_articleList') on @endif ">
+                    <a href="{{route('s_user_articleList')}}">
+                        <i class="ggzdl_iconZixun1"></i>我的内容
+                        <i class="ggzdl_rightArrow"></i>
+                    </a>
+                </li>   
+                    <li class="@if(Request::route()->getName() == 's_user_spreadData' || Request::route()->getName() == 's_user_spreadDataDetail') on @endif ">
+                    <a href="{{route('s_user_spreadData')}}">
+                        <i class="ggzdl_iconCommondata"></i>推广数据
+                        <i class="ggzdl_rightArrow"></i>
+                    </a>
+                </li>
+                <li class="@if(Request::route()->getName() == 's_user_inviteData') on @endif ">
+                    <a href="{{route('s_user_inviteData')}}">
+                        <i class="ggzdl_iconFriend1"></i>好友邀请
+                        <i class="ggzdl_rightArrow"></i>
+                    </a>
+                </li>
+                <li class="@if(Request::route()->getName() == 's_user_accountSetting') on @endif ">
+                    <a href="{{route('s_user_accountSetting')}}">
+                        <i class="ggzdl_iconAccount"></i>账户设置
+                        <i class="ggzdl_rightArrow"></i>
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <div class="ggzdl_admin_wrapRight">
             @yield('content')
         </div>
+
+
     </div>
 
 
-</div>
-{{--<footer>--}}
-    {{--<p style="margin-top: 100px;">©2017 剑指网络 ALL RIGHTS RESERVED. <a  href="http://www.miitbeian.gov.cn" target="_blank" style="text-decoration: none; color: #FFF;">沪ICP备16017440号</a>　</p>--}}
-{{--</footer>--}}
 
-<!--_footer 作为公共模版分离出去-->
-{{--<script type="text/javascript" src="/lib/jquery/1.9.1/jquery.min.js"></script>--}}
-{{--<script type="text/javascript" src="/lib/layer/2.4/layer.js"></script>--}}
-{{--<script type="text/javascript" src="/static/h-ui/js/H-ui.min.js"></script>--}}
-{{--<script type="text/javascript" src="/static/h-ui.admin/js/H-ui.admin.js"></script> <!--/_footer 作为公共模版分离出去-->--}}
-
-{{--<!--请在下方写此页面业务相关的脚本-->--}}
-{{--<script type="text/javascript" src="/lib/My97DatePicker/4.8/WdatePicker.js"></script>--}}
-{{--<script type="text/javascript" src="/lib/jquery.validation/1.14.0/jquery.validate.js"></script>--}}
-{{--<script type="text/javascript" src="/lib/jquery.validation/1.14.0/validate-methods.js"></script>--}}
-{{--<script type="text/javascript" src="/lib/jquery.validation/1.14.0/messages_zh.js"></script>--}}
-
-
-{{--<script type="text/javascript" src="/lib/datatables/1.10.0/jquery.dataTables.min.js"></script>--}}
-{{--<script type="text/javascript" src="/lib/laypage/1.2/laypage.js"></script>--}}
-
-
-{{--<script type="text/javascript" src="/lib/webuploader/0.1.5/webuploader.min.js"></script>--}}
-{{--<script type="text/javascript" src="/lib/ueditor/1.4.3/ueditor.config.js"></script>--}}
-{{--<script type="text/javascript" src="/lib/ueditor/1.4.3/ueditor.all.min.js"> </script>--}}
-{{--<script type="text/javascript" src="/lib/ueditor/1.4.3/lang/zh-cn/zh-cn.js"></script>--}}
-
-
+    <!--底部-->
+    <div class="pgy_admin_footer" style="overflow: hidden;">
+    ©2018 蒲公英 ALL RIGHTS RESERVED. <a href="http://www.miitbeian.gov.cn" target="_blank">沪ICP备18004037号-1</a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Mail：hi@pugongying.link</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="http://www.jzinter.com/">about us</a></div>
+    <div style=" display: none;">
+        @if(config('params.official_site'))
+            <script type="text/javascript">var cnzz_protocol = (("https:" == document.location.protocol) ? " https://" : " http://");document.write(unescape("%3Cspan id='cnzz_stat_icon_1273382724'%3E%3C/span%3E%3Cscript src='" + cnzz_protocol + "s13.cnzz.com/z_stat.php%3Fid%3D1273382724%26show%3Dpic1' type='text/javascript'%3E%3C/script%3E"));</script>
+        @endif
+    </div>
 
 <script type="text/javascript">
-    //    鼠标移动显示
-
-    $(".userHides").mouseover(function () {
-        $(".user_hide").show();
-    });
-    $(".userHides").mouseout(function () {
-        $(".user_hide").hide();
-    });
-
-    $(".userAs").mouseover(function () {
-        $(".user_hide").show();
-    });
-    $(".userAs").mouseout(function () {
-        $(".user_hide").hide();
-    });
-
-
-    Date.prototype.format = function(format) {
-        var date = {
-            "M+": this.getMonth() + 1,
-            "d+": this.getDate(),
-            "h+": this.getHours(),
-            "m+": this.getMinutes(),
-            "s+": this.getSeconds(),
-            "q+": Math.floor((this.getMonth() + 3) / 3),
-            "S+": this.getMilliseconds()
-        };
-        if (/(y+)/i.test(format)) {
-            format = format.replace(RegExp.$1, (this.getFullYear() + '').substr(4 - RegExp.$1.length));
-        }
-        for (var k in date) {
-            if (new RegExp("(" + k + ")").test(format)) {
-                format = format.replace(RegExp.$1, RegExp.$1.length == 1
-                    ? date[k] : ("00" + date[k]).substr(("" + date[k]).length));
-            }
-        }
-        return format;
-    }
+$(function(){
+      
+        $(".pgy_adminUser_top").mouseover(function(){
+            $('.pgy_admin_downs').show();
+ 
+        });
+        $(".pgy_adminUser_top").mouseout(function(){
+            $('.pgy_admin_downs').hide();
+ 
+        });
+})
 </script>
-    @yield('script')
+@yield('script')    
 <!--/请在上方写此页面业务相关的脚本-->
 </body>
 </html>
