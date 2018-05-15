@@ -1344,6 +1344,156 @@ class UserController extends Controller
         }
     }
 
+    /**
+     * @Get("/lists", as="s_order_lists")
+     * @Post("/lists", as="s_order_lists")
+     */
+    public function lists(Request $request) {
+        if ($request->ajax()) {
+            $uid = $request->get('uid', 0);
+            if(!is_numeric($uid)){
+                $uid = 0;
+            }
+
+            $data = Curl::post('/product/getOrderList',
+                [
+                    'uid'=>$uid,
+                    'order_number'=>$request->get('order_number', ''),
+                    'status'=>$request->get('status', ''),
+                    'page' => $request->get('page', 1),
+                    'pagesize'=>$request->get('pagesize', 10),
+                ]
+            );
+            $return = [
+                'initEcho' => 1,
+                'iTotalRecords' => $data['data']['count'],
+                'iTotalDisplayRecords' => $data['data']['count'],
+                'aaData' => $data['data']['data'],
+            ];
+            return new JsonResponse($return);
+        }
+
+        return view("Order.list");
+    }
+
+
+    /**
+     * 订单售后受理
+     * @Get("/salesLists", as="s_after_sales_lists")
+     * @Post("/salesLists", as="s_after_sales_lists")
+     */
+    public function salesLists(Request $request) {
+
+        if ($request->ajax()) {
+            $data = Curl::post('/productOrder/getProductAfterSalesList',
+                [
+                    'status'=>$request->get('status', ''),
+                ]
+            );
+
+            $return = [
+                'initEcho' => 1,
+                'iTotalRecords' => $data['data']['count'],
+                'iTotalDisplayRecords' => $data['data']['count'],
+                'aaData' => $data['data']['data'],
+            ];
+            return new JsonResponse($return);
+        }
+
+        return view("Order.salesLists");
+    }
+
+    /**
+     * 订单售后受理
+     * @Get("/salesDetail", as="s_after_sales_detail")
+     * @Post("/salesDetail", as="s_after_sales_detail")
+     */
+    public function salesDetail(Request $request) {
+
+        $data = Curl::post('/productOrder/getProductAfterSales',[
+            'sales_id'=>$request->get('id', ''),
+        ]);
+
+        $data['data']['contents'] = json_decode( $data['data']['contents'],true);
+        $data['data']['advert_info'] = json_decode( $data['data']['advert_info'],true);
+
+
+
+        $message = Curl::post('/productOrder/getAfterMessageList',[
+            'product_order_id'=>$request->get('product_order_id', $data['data']['product_order_id']),
+            'pagesize'=>100,
+        ]);
+
+        return view("Order.salesDetail")->with('data',$data['data'])->with('message',$message['data']['data']);
+    }
+
+    /**
+     * 订单售后受理下一步
+     * @Get("/salesDetailNext", as="s_after_sales_detail_next")
+     * @Post("/salesDetailNext", as="s_after_sales_detail_next")
+     */
+    public function salesDetailNext(Request $request) {
+
+        $data = Curl::post('/productOrder/getProductAfterSales',[
+            'sales_id'=>$request->get('id', ''),
+        ]);
+
+        $data['data']['contents'] = json_decode( $data['data']['contents'],true);
+        $data['data']['advert_info'] = json_decode( $data['data']['advert_info'],true);
+
+        return view("Order.salesDetailNext")->with('data',$data['data']);
+    }
+
+    /**
+     * 订单售后留言
+     * @Post("/salesMessage", as="s_after_sales_message")
+     */
+    public function salesMessage(Request $request) {
+
+        if ($request->ajax()) {
+
+            $data = Curl::post('/productOrder/addProductAfterSalesMessage',
+                [
+                    'product_order_id'  =>$request->get('product_order_id', ''),
+                    'customer_id'       => \Auth::getUser()->id,
+                    'message'           =>$request->get('message', ''),
+                ]
+            );
+            return new JsonResponse($data);
+        }
+
+    }
+
+    /**
+     * 订单状态确认
+     * @Post("/salesStatus", as="s_after_sales_status")
+     */
+    public function salesStatus(Request $request) {
+
+        if ($request->ajax()) {
+            $status =  $request->get('status', '');
+            if($status == 1){
+                $status = 4;
+            }elseif ($status == 2){
+                $status = 5;
+            }elseif ($status == 3){
+                $status = 6;
+            }elseif ($status == 4){
+                $status = 7;
+            }elseif ($status == 5){
+                $status = 8;
+            }elseif ($status == 6){
+                $status = 9;
+            }
+            $data = Curl::post('/productOrder/updateAfterSales',
+                [
+                    'sales_id'  => $request->get('id', ''),
+                    'status'    => $status,
+                ]
+            );
+            return new JsonResponse($data);
+        }
+    }
 
 
     private function getUserId() {
