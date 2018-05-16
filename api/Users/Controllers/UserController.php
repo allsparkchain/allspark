@@ -451,4 +451,227 @@ class UserController
             return $this->respone($e->getCode(), $e->getMessage());
         }
     }
+
+    private function _newRegister($var)
+    {
+        try {
+
+            $code = session('zmt_reg_code');
+
+            $invite_code = session('recommendCode');
+
+            $invite = Curl::post('/user/getUserPreInvite', ['code'=>$code]);
+            if($invite['status'] == 200 && $invite['data']){
+                $invite_code = $invite['data'];
+            }
+            $reg_arr = [
+                'mobile' => $var['mobile'],
+                'password' => $var['passwd'],
+                'order_number' => $var['order_number'],
+                'invite_code' => $invite_code,
+            ];
+
+            $post = Curl::post('/user/register', $reg_arr);
+            if (isset($post['status']) && $post['status'] == 200) {
+
+                if ($code) {
+                    $openUser = Curl::post('/weixin/bindOpenId', [
+                        'uid' => $post['data']['id'],
+                        'code' => $code,
+                        'type' => 1,
+                    ]);
+                    $post['data']['nickname'] = $openUser['data']['nickname'];
+                    $post['data']['headimgurl'] = $openUser['data']['headimgurl'];
+                }
+                session(['newRegisterData' => $post['data']]);
+            } else {
+                return new JsonResponse(['status' => 400, 'message' => '注册失败']);
+            }
+        } catch (ApiException $e) {
+            return new JsonResponse(['status' => $e->getCode(), 'message' => $e->getMessage(),]);
+        }
+    }
+
+    /**
+     * 协议
+     * @Get("/agreement", as="s_agreement")
+     */
+    public function agreement()
+    {
+
+        return view("Register.agreement");
+    }
+
+
+    /**
+     * 发送注册验证码
+     * @Post("/sendRegisterSms", as="s_sms_register")
+     */
+    public function sendRegisterSms(Request $request) {
+        try {
+            $mobile = esaDecode($request->get("mobile",''));
+            clearAES();
+            //$mobile = $request->get("mobile",'');
+            if(strlen($mobile)<=0){
+                return new JsonResponse([
+                    "status"=>477,
+                    "message"=>'手机号输入格式错误',
+                ]);
+            }
+            $post = Curl::post('/utils/message/createMsg', [
+                'mobile' => $mobile,
+                'type' => 1
+            ]);
+
+            if($post['status']==200){
+                $data = $post['data'];
+                unset($post['data']);
+                \Session::put("registerSms", json_encode(["mobile"=>$mobile, "order_number"=>$data['order_number']]));
+            }
+            return new JsonResponse($post);
+        } catch (ApiException $e) {
+
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     *
+     * @Post("/checkMobilenew", as="s_sms_checkMobilenew")
+     */
+    public function checkMobilenew(Request $request) {
+        try {
+
+            $mobile = esaDecode($request->get("mobile",''));
+            //clearAES();
+            $post = Curl::post('/user/checkMobile', [
+                'mobile' => $mobile,
+            ]);
+            if(is_null($post['data'])){
+                return new JsonResponse(['msg'=>'ok','status'=>200]);
+            }
+            return new JsonResponse(['msg'=>'手机号已存在','status'=>201]);
+        } catch (ApiException $e) {
+
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+
+            ]);
+        }
+    }
+
+
+    /**
+     *
+     * @Post("/validatorRegisterSms", as="s_validator_register")
+     */
+    public function validatorRegisterSms(Request $request) {
+        try {
+            $mobile = esaDecode($request->get("mobile"));
+            clearAES();
+            $code = $request->get("code");
+            $session = \Session::get("registerSms");
+            $session = json_decode($session, true);
+            if($mobile != Arr::get($session, 'mobile', '')){
+
+                return new JsonResponse([
+                    "status"=>203,
+                    "message"=>'传递手机号与刚才发送手机号不符',
+                ]);
+
+            }
+            if(!$code){
+                return new JsonResponse([
+                    "status"=>204,
+                    "message"=>'请输入正确的验证码',
+                ]);
+            }
+
+            $post = Curl::post('/utils/message/verificationSms', [
+                'mobile' => $mobile,
+                'code' => $code,
+                'type' => 1,
+                'order_number' => Arr::get($session, 'order_number', ''),
+            ]);
+
+            $data = $post['data'];
+            unset($post['data']);
+
+
+
+            //这册实名验证码(不发送只做验证)
+            $authSMSverify = Curl::post('/utils/message/verificationSms', [
+                'mobile' => $mobile,
+                'code' => $code,
+                'type' => 6,
+                'order_number' => Arr::get($session, 'order_number', '').'_6',
+            ]);
+//            var_dump($authSMSverify);die;
+//            $session['order_number_auth'] = Arr::get($session, 'order_number', '').'_6';
+            $session['order_number_auth'] = $authSMSverify['data']['order_number'];
+            $session['order_number'] = $data['order_number'];
+
+            \Session::put("validatorResisterSms", json_encode($session));
+
+
+            return new JsonResponse($post);
+        } catch (ApiException $e) {
+
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * @post("/auth/registers", as="s_auth_registers")
+     */
+    public function registers(Request $request)
+    {
+
+        if($request->ajax()){
+            try {
+                $var = \Session::get("validatorResisterSms");
+                $var = json_decode($var, true);
+                $passwd = Arr::get($var, "passwd",'');
+                $passwd_confirmation = Arr::get($var, "passwd_confirmation",'');
+                $request['passwd'] = $passwd;
+                $request['passwd_confirmation'] = $passwd_confirmation;
+
+
+                $response = parent::register($request);
+                if($response instanceof JsonResponse){
+                    return new JsonResponse(['msg'=>'注册失败','status'=>208]);
+                }
+                \Session::forget("registerSms");
+                \Session::forget("validatorResisterSms");
+                return new JsonResponse(['msg'=>'ok','status'=>200]);
+            } catch (\Exception $e) {
+                return new JsonResponse(['msg'=>'注册失败','status'=>209]);
+            }
+        }
+
+        $response = parent::register($request);
+        \Session::forget("registerSms");
+        \Session::forget("validatorResisterSms");
+        return $response;
+    }
+    /**
+     * Get a validator for an incoming registration request.
+     *
+     * @param  array  $data
+     * @return \Illuminate\Contracts\Validation\Validator
+     */
+    protected function validator(array $data)
+    {
+        return \Validator::make($data, [
+            'passwd' => 'required|max:20|confirmed',
+            'passwd_confirmation' => 'required|max:20',
+        ]);
+    }
 }
