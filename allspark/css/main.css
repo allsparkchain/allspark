@@ -199,17 +199,51 @@ header li.on span,header li:hover span{
 }
 .img9{
     width: 100%;
-    height: 1361px;
-    background: url("../images/allspark_09.png?v1") no-repeat center top;
+    height: 1161px;
+    position: relative;
+    background: url("../images/allspark_09.png?v5") no-repeat center top;
+}
+.more{
+    position: absolute;
+    bottom: 80px;
+    left: 50%;
+    margin: 0 0 0 -65px;
+    width: 130px;
+    height: 60px;
 }
 .img10{
     width: 100%;
     height: 434px;
-    background: url("../images/allspark_10.png?v1") no-repeat center top;
+    background: url("../images/allspark_10.png?v2") no-repeat center top #ffffff;
 }
 .img10 .spaCon{
     padding-top: 233px;
     height: 201px;
+}
+.scroolMenu{
+    width: 105px;
+    height: 103px;
+    background: url("../images/top2.png?v1") no-repeat center top;
+    position: fixed;
+    left: 50%;
+    bottom: 50px;
+    margin-left: 705px;
+}
+.scroolMenu a.chat{
+    display: block;
+    width: 67px;
+    height: 67px;
+    background: url("../images/partner.png") no-repeat -350px -84px;
+    margin: -30px auto 0;
+}
+.scroolMenu a.chat:hover{
+    background-position: -350px 0;
+}
+.scroolMenu a.top{
+    display: block;
+    width: 100%;
+    height: 50px;
+    margin-top: 10px;
 }
 .spaPartner{
     width: 100%;
@@ -319,4 +353,73 @@ header li.on span,header li:hover span{
 }
 .icoTable tr td.three{
     background: #f5f7ff;
+}
+
+/* team */
+.team-nav{
+    width: 100%;
+    height: 100px;
+    background: #3650c3;
+}
+.team-nav-wrap{
+    width: 1100px;
+    height: 100px;
+    margin: 0 auto;
+}
+.team-logo{
+    float: left;
+    width: 150px;
+    height: 100px;
+    margin: 0 50px;
+    background: url("../images/team_logo.png") no-repeat;
+}
+.nav-ul{
+
+}
+
+.nav-ul li a{
+    color:#fff;
+    text-decoration: none;
+}
+
+.nav-ul li{
+    float: left;
+    margin-left: 46px;
+    color: #ffffff;
+    font-size: 16px;
+    line-height: 100px;
+    cursor: pointer;
+    position: relative;
+}
+.nav-ul li span{
+    display: block;
+    width: 100%;
+    height: 2px;
+    position: absolute;
+    bottom: 30px;
+    left: 0;
+}
+.nav-ul li.on span,.nav-ul li:hover span{
+    background: #fff;
+}
+.teamWrap{
+    width: 1400px;
+    min-height: 3600px;
+    margin: 0 auto;
+    /* background: url("../images/team_bg.jpg") no-repeat; */
+}
+.team1,.team2{
+    width: 1100px;
+    display: block;
+    margin: 0 auto;
+}
+.team1{
+    height: 1630px;
+    background: url("../images/team1.jpg?v=2") no-repeat;
+    background-size: 100% 100%;
+}
+.team2{
+    height: 1800px;
+    background: url("../images/team2.jpg") no-repeat;
+    background-size: 100% 100%;
 }
