@@ -661,6 +661,93 @@ class UserController
         \Session::forget("validatorResisterSms");
         return $response;
     }
+
+    /**
+     * 点击购买跳至确认订单页面
+     * @Post("/prepare", as="s_user_prepare")
+     */
+    public function prepare(Request $request) {
+        $num = $request->get("num",1);
+        if(!intval($num) || $num < 1){
+            $num = 1;
+        }
+
+        $specification_id = $request->get("specificationId",0);
+        if(!intval($specification_id) || $specification_id < 1){
+            return new JsonResponse(['status'=>202,'message'=>'规格选择有误']);
+        }
+
+        $session = \Session::get("productDetail");
+        $session = json_decode($session, true);
+        if (!isset($session['proinfo'])) {
+            return new JsonResponse(['status'=>201,'message'=>'数据过期']);
+        }
+
+        $info = $session;
+
+        $chose = false;
+        foreach ($session['proinfo']['specificationsList'] as $key=>$value){
+            if($specification_id == $value['id']){
+                $info['selling_price'] = $value['selling_price'];
+                $info['choose_specification_id'] = $specification_id;
+                $chose = true;
+                break;
+            }
+        }
+        if(!$chose){
+            return new JsonResponse(['status'=>203,'message'=>'所选规格未找到']);
+        }
+        $extra = $request->get("extra",'');
+
+
+        $info['num'] = $num;
+        $info['extra'] = $extra;
+
+
+        \Session::put('productDetail', json_encode($info));
+        return new JsonResponse(['status'=>200,'message'=>'ok']);
+
+
+
+    }
+
+    /**
+     * 确认订单页面
+     * @Get("/confirmOrder", as="s_user_confirmOrder")
+     */
+    public function confirmOrder(Request $request) {
+        $uid = $this->getUserId();
+        $session = \Session::get("productDetail");
+        $session = json_decode($session, true);
+        if (!isset($session['proinfo'])) {
+            return redirect(route('s_order_orderHistoryList'));
+//            var_dump('无之前的数据，非法');die;
+            //没有之前页面的数据，，，非法过来
+        }else{
+            $num  = $session['num'];
+            $selling_price = $session['selling_price'];
+            $proinfo = $session['proinfo'];
+            $extra = $session['extra'];
+        }
+        $address = [];
+        try{
+            $address = Curl::post('/user/getUserAddress',['uid'=>$uid])['data'];
+            if(!empty($address)){
+                $address = $address[0];
+            }
+
+        }catch (ApiException $e){
+
+        }
+        return view("Order.confirmOrder")
+            ->with('address',$address)
+            ->with('num',$num)
+            ->with('proinfo',$proinfo)
+            ->with('extra',$extra)
+            ->with('selling_price',$selling_price)
+            ;
+    }
+
     /**
      * Get a validator for an incoming registration request.
      *
