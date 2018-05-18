@@ -761,4 +761,282 @@ class UserController
             'passwd_confirmation' => 'required|max:20',
         ]);
     }
+
+
+    /**
+     * @Get("/getArticleImgList", as="s_article_getArticleImgList")
+     * @Post("/getArticleImgList", as="s_article_getArticleImgList")
+     */
+    public function getArticleImgList(Request $request) {
+        if ($request->ajax()) {
+            $array = [
+                'page' => $request->get('page', 1),
+                'pagesize'=>$request->get('pagesize', 10),
+                'article_id'=>$request->get('article_id', ''),
+            ];
+
+
+            $data = Curl::post('/article/getArticleImgList',
+                $array
+            );
+            $return = [
+                'initEcho' => 1,
+                'iTotalRecords' => $data['data']['count'],
+                'iTotalDisplayRecords' => $data['data']['count'],
+                'aaData' => $data['data']['data'],
+            ];
+            return new JsonResponse($return);
+        }
+        $re = '-1';
+        if($request->get('article_id')){
+            $re = $request->get('article_id');
+        }
+        return view("Article.articleImgList")->with('article_id',$re);
+    }
+
+    /**
+     * @Post("/getArticleImgDel", as="s_article_getArticleImgDel")
+     */
+    public function getArticleImgDel(Request $request) {
+        if ($request->ajax()) {
+            $this->validate($request, [
+                'id' => 'required',
+            ]);
+            $data = Curl::post('/article/getArticleImgDel',
+                [
+                    'id' => $request->get('id', -1),
+                ]
+            );
+            return new JsonResponse($data);
+        }
+        return false;
+    }
+
+    /**
+     * @Post("/getArticleImgOrder", as="s_article_getArticleImgOrder")
+     */
+    public function getArticleImgOrder(Request $request) {
+        if ($request->ajax()) {
+            $this->validate($request, [
+                'id' => 'required',
+            ]);
+            $data = Curl::post('/article/getArticleImgOrder',
+                [
+                    'id' => $request->get('id'),
+                    'orderby' => $request->get('orderby'),
+                ]
+            );
+            return new JsonResponse($data);
+        }
+        return false;
+    }
+
+    /**
+     * 文章栏目列表
+     * @Get("/columnLists", as="s_article_columnLists")
+     * @Post("/columnLists", as="s_article_columnLists")
+     */
+    public function columnLists(Request $request) {
+        if ($request->ajax()) {
+            $data = Curl::post('/article/columnList',
+                [
+                    'page' => $request->get('page', 1),
+                    'pagesize'=>$request->get('pagesize', 10),
+                    'name'=>$request->get('name', ''),
+//                    'adminlist' => 1
+                ]
+            );
+            $return = [
+                'initEcho' => 1,
+                'iTotalRecords' => $data['data']['count'],
+                'iTotalDisplayRecords' => $data['data']['count'],
+                'aaData' => $data['data']['data'],
+            ];
+            return new JsonResponse($return);
+        }
+        return view("Article.Column.list");
+    }
+
+    /**
+     * 组权限添加页面
+     * @Get("/columnAdd", as="s_article_columnAdd")
+     */
+    public function columnAdd(Request $request) {
+        $industry_media_list = Curl::post('/industryCategory/getLists', ['status' => 1,'type'=>2]);
+        $industry_media_list = $industry_media_list['data']['data'];
+        return view("Article.Column.add")->with('industry_media_list',$industry_media_list);
+    }
+
+    /**
+     * 新增 文章栏目 提交
+     * @Post("/columnAddPost", as="s_article_columnAddPost")
+     */
+    public function columnAddPost(Request $request) {
+        $this->validate($request, [
+            'name'=>'required',
+            'article_category_id'=>'required'
+        ]);
+        $data = Curl::post('/article/columnAdd',
+            [
+                'status'=>$request->get('status', 1),
+                'name'=>$request->get('name', ''),
+                'article_category_id'=>$request->get('article_category_id', 0),
+            ]
+        );
+
+        return redirect(route('s_article_columnLists'));
+    }
+
+    /**
+     * @Get("/columnEdit", as="s_article_columnEdit")
+     */
+    public function columnEdit(Request $request){
+        $data = Curl::post('/article/getColumnById',
+            ['id'=>$request->get('id', '')]
+        );
+        $industry_media_list = Curl::post('/industryCategory/getLists', ['status' => 1,'type'=>2]);
+        $industry_media_list = $industry_media_list['data']['data'];
+        return view("Article.Column.edit")->with('res',$data['data'])->with('industry_media_list',$industry_media_list);
+    }
+
+    /**
+     * @Post("/columnEditPost", as="s_article_columnEditPost")
+     */
+    public function columnEditPost(Request $request){
+        $this->validate($request, [
+            'id' => 'required',
+            'name'=>'required',
+            'article_category_id'=>'required'
+        ]);
+        $id = $request->get('id',0);
+        $name = $request->get('name','');
+        if($id>0 && strlen($name)>0){
+            $data = Curl::post('/article/columnEdit',
+                [
+                    'id'=>$request->get('id',0),
+                    'name'=>$request->get('name',''),
+                    'article_category_id'=>$request->get('article_category_id',0)
+                ]
+
+            );
+
+            if($data['status'] != 200){
+                return back()->withErrors($data['message']);
+            }else{
+
+                return redirect(route('s_article_columnLists'))->with('addsuccess', 'success');
+            }
+        }
+
+    }
+
+    /**
+     * @Post("/columnDel", as="s_article_columnDel")
+     */
+    public function columnDel(Request $request) {
+        if ($request->ajax()) {
+            $this->validate($request, [
+                'id' => 'required',
+            ]);
+            $data = Curl::post('/article/columnDel',
+                [
+                    'id' => $request->get('id', -1),
+                ]
+            );
+            return new JsonResponse($data);
+        }
+        return false;
+    }
+
+    /**
+     * 栏目  下的文章列表
+     * @Get("/columnArticleLists", as="s_article_columnArticleLists")
+     * @Post("/columnArticleLists", as="s_article_columnArticleLists")
+     */
+    public function columnArticleLists(Request $request) {
+        $id = $request->get('id', '');
+        if ($request->ajax()) {
+            $data = Curl::post('/article/columnArticleList',
+                [
+                    'page' => $request->get('page', 1),
+                    'pagesize'=>$request->get('pagesize', 10),
+                    'column_id'=>$id,
+//                    'adminlist' => 1
+                ]
+            );
+            $return = [
+                'initEcho' => 1,
+                'iTotalRecords' => $data['data']['count'],
+                'iTotalDisplayRecords' => $data['data']['count'],
+                'aaData' => $data['data']['data'],
+            ];
+            return new JsonResponse($return);
+        }
+        return view("Article.Column.articlelist")->with('id',$id);
+    }
+
+    /**
+     * 模糊搜索名称 相似的 已上架的产品
+     * @Post("/searchArticlelists", as="s_article_searchArticlelists")
+     */
+    public function searchArticlelists(Request $request) {
+        if ($request->ajax()) {
+            $data = Curl::post('/article/list',
+                [
+                    'page' => $request->get('page', 1),
+                    'pagesize'=>$request->get('pagesize', 20),
+                    'name'=>$request->get('article_name', ''),
+                    'adminlist' => -1
+                ]
+            );
+//            dd($data);
+            $return = [
+                'initEcho' => 1,
+                'iTotalRecords' => $data['data']['count'],
+                'iTotalDisplayRecords' => $data['data']['count'],
+                'aaData' => $data['data']['data'],
+            ];
+            return new JsonResponse($return);//
+        }
+    }
+
+    /**
+     * 删除 品牌下的关联文章
+     * @Post("/columnArticleDel", as="s_article_columnArticleDel")
+     */
+    public function columnArticleDel(Request $request) {
+        if ($request->ajax()) {
+            $this->validate($request, [
+                'Id' => 'required',
+            ]);
+            $data = Curl::post('/article/columnArticleDel',
+                [
+                    'id' => $request->get('Id', -1),
+                ]
+            );
+            return new JsonResponse($data);
+        }
+        return false;
+    }
+
+    /**
+     * 添加 品牌下的关联文章
+     * @Post("/columnAddArticle", as="s_article_columnAddArticle")
+     */
+    public function columnAddArticle(Request $request) {
+        if ($request->ajax()) {
+            $this->validate($request, [
+                'articleId' => 'required',
+                'colId' => 'required',
+            ]);
+            $data = Curl::post('/article/columnAddArticle',
+                [
+                    'article_id' => $request->get('articleId', -1),
+                    'column_id' => $request->get('colId', -1),
+                ]
+            );
+            return new JsonResponse($data);
+        }
+        return false;
+    }
 }

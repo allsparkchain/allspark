@@ -492,4 +492,186 @@ class AdvertOwnerUserController{
     }
 
 
+    /**
+     * @Get("/specifications_edit", as="s_goods_specifications_edit")
+     * @Post("/specifications_edit", as="s_goods_specifications_edit")
+     */
+    public function specifications_edit(Request $request) {
+
+
+        $data = Curl::post('/product/getGoodsSpecifications',
+            ['goods_id'=>$request->get('id', '')]
+        );
+
+
+        $product = Curl::post('/product/getProduct',
+            ['product_id'=>$data['data']['product_id']]
+        );
+
+
+        if($product['data']['specifications']){
+            $specifications = json_decode($product['data']['specifications'],true);
+        }else{
+            $specifications = '';
+        }
+
+        if($data['data']['specifications']){
+            $specifications2 = json_decode($data['data']['specifications'],true);
+        }else{
+            $specifications2 = '';
+        }
+
+
+        return view("Goods.specifications_edit")->with('data',$data['data'])->with('specifications', $specifications)->with('specifications2',$specifications2);
+    }
+
+    /**
+     * @Get("/specifications_add", as="s_goods_specifications_add")
+     * @Post("/specifications_add", as="s_goods_specifications_add")
+     */
+    public function specifications_add(Request $request) {
+
+
+        $data = Curl::post('/product/getProduct',
+            ['product_id'=>$request->get('product_id', '')]
+        );
+
+        if($data['data']['specifications']){
+            $specifications = json_decode($data['data']['specifications'],true);
+        }else{
+            $specifications = '';
+        }
+
+
+        return view("Goods.specifications_add")->with('specifications', $specifications)->with('product_id',$request->get('product_id', ''));
+    }
+
+    /**
+     * @Get("/specifications_del", as="s_goods_specifications_del")
+     * @Post("/specifications_del", as="s_goods_specifications_del")
+     */
+    public function specifications_del(Request $request) {
+
+
+
+        $data = Curl::post('/product/delSpecifications',
+            [
+                'goods_id' => $request->get('id', ''),
+            ]
+        );
+        return new JsonResponse($data);
+
+    }
+
+
+
+    /**
+     * @Get("/specifications_save", as="s_specifications_save")
+     * @Post("/specifications_save", as="s_specifications_save")
+     */
+    public function specifications_save(Request $request) {
+
+
+        $validator = \Validator::make($request->all(), [
+            'specifications_key' => 'required',
+            'selling_price' => 'required|Numeric|min:1',
+        ]);
+
+
+
+        $paramer = $request->all();
+
+        if ($validator->fails()) {
+            return redirect(route('s_goods_specifications_add',['product_id'=>$paramer['product_id']]))
+                ->withErrors($validator)
+                ->withInput();
+        }
+
+        $array = [];
+        $is_null = 0;
+        foreach ($paramer['specifications'] as $key => $val){
+            if($paramer['specifications_key'][$key]){
+                $is_null++;
+                $array[$val] = $paramer['specifications_key'][$key];
+            }
+        }
+
+        if($is_null==0){
+            return back()->withErrors('至少选择1个规格属性');
+        }
+        if(isset($paramer['goods_id'])){
+            $data = Curl::post('/product/editSpecifications',
+                [
+                    'goods_id' => $paramer['goods_id'],
+                    'product_id' => $paramer['product_id'],
+                    'num'   => $paramer['stock'],
+                    'specifications'   => $array?json_encode($array):'',
+                    'selling_price'=>$paramer['selling_price'],
+                ]
+            );
+        }else{
+            $data = Curl::post('/product/addSpecifications',
+                [   'product_id' => $paramer['product_id'],
+                    'num'   => $paramer['stock'],
+                    'specifications'   => $array?json_encode($array):'',
+                    'selling_price'=>$paramer['selling_price'],
+                ]
+            );
+        }
+
+
+        if($data['status'] != 200){
+            return back()->withErrors($data['message']);
+        }else{
+            return redirect(route('s_goods_specificationslists',['product_id'=>$paramer['product_id']]));
+        }
+
+
+    }
+
+
+
+    /**
+     *
+     * @Post("/changeStatus", as="s_goods_change_status")
+     */
+    public function changeStatus(Request $request) {
+
+        if ($request->ajax()) {
+            $data = Curl::post('/product/changeStatus',
+                [
+                    'product_id' => $request->get('product_id', 0),
+                    'status'=>$request->get('status', 1),
+                ]
+            );
+            return new JsonResponse($data);
+        }
+        return false;
+    }
+
+
+    /**
+     * @Get("/add", as="s_goods_add")
+     *
+     */
+    public function add(Request $request){
+//        $categorylist = Curl::post('/productCategory/getProductCategoryList',['status'=>1]);
+        $brandlist = Curl::post('/product/brandList');
+//      $regionlist = Curl::post('/product/regionList',['parent_id'=>1]);
+//        $categorylist = Curl::post('/industry/getIndustryUserList');
+//        $categorylist = Curl::post('/industry/getLists',['status'=>1,'type'=>1]);
+        $categorylist = Curl::post('/industryCategory/getLists',['status'=>1,'type'=>1]);
+        $advertList = Curl::post('/advert/advertRelativeList');
+
+//var_dump($advertList['data']);die;
+        $product_type = $request->get('product_type', 1);
+
+        return view("Goods.add")
+            ->with('categorylist',$categorylist['data']['data'])
+            ->with('brandlist',$brandlist['data']['data'])
+            ->with('product_type',$product_type)
+            ->with('advertList',$advertList['data']);
+    }
+
+
 }
