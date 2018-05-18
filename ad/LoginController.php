@@ -44,8 +44,11 @@ class LoginController extends BaseLoginController
 
         $wxHost = config('params.wx_host');
 
+        $adver_host = config('params.advert_host');
 
-        return view("login")->with('url',$url)->with('pc_jzstate',$jzstate)->with('wxHost',$wxHost);
+        $wx_qrurl = config('params.pc_qr_page').'?return_url='.$adver_host.'auth/weixin/QRreturn'.'&login_type=4';
+
+        return view("login")->with('url',$url)->with('pc_jzstate',$jzstate)->with('wxHost',$wxHost)->with('wx_qrurl',$wx_qrurl);
     }
 
     /**
