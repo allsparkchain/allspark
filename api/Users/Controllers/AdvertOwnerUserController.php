@@ -674,4 +674,71 @@ class AdvertOwnerUserController{
     }
 
 
+    /**
+     * @Post("/auth/logintest", as="s_auth_login")
+     */
+    public function logintest(Request $request)
+    {
+        if($request->ajax()){
+            try {
+                $result = parent::login($request);
+                if($result instanceof JsonResponse){
+                    return new JsonResponse(['msg'=>'用户名或密码错误','status'=>208]);
+                }
+                return new JsonResponse(['msg'=>'ok','status'=>200]);
+            } catch (\Exception $e) {
+                return new JsonResponse(['msg'=>'用户名或密码错误','status'=>209]);
+            }
+        }
+        //api接口 登录
+        return parent::login($request);
+    }
+
+    /**
+     * 邮箱登录
+     * @Post("/emailLogin", as="s_login_emailLogin")
+     */
+    public function emailLogin(Request $request) {
+        if($request->ajax()){
+            try {
+                $email = $request->get("email",'');
+                $passwd = $request->get("passwd",'');
+                if(strlen($email)<7 || mb_strlen($passwd)<7){
+                    return new JsonResponse([
+                        "status"=>'333',
+                        "message"=>'传递参数非法或者缺少参数',
+                    ]);
+                }
+                $res = \Auth::attempt(['email_login' => 1, 'email' => $email, 'password'=>$passwd ],true);
+                if($res){
+                    return new JsonResponse([
+                        "status"=>'200',
+                        "message"=>'成功',
+                    ]);
+                }else{
+                    return new JsonResponse([
+                        "status"=>'208',
+                        "message"=>'邮箱地址或密码错误',
+                    ]);
+                }
+            } catch (\ApiException $e) {
+
+                return new JsonResponse([
+                    "status"=>$e->getCode(),
+                    "message"=>$e->getMessage(),
+                ]);
+            }
+        }
+    }
+
+    protected function authenticated(Request $request, $user)
+    {
+        $url = $request->get('url');
+        if($url){
+            return redirect($url);
+        }
+        return redirect($this->redirectPath());
+    }
+
+
 }

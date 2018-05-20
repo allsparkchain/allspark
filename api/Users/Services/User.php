@@ -1426,6 +1426,148 @@ class User
 
     }
 
+    /**
+     * 同步各个平台的密码
+     * @param string  $query_type
+     * @param string $query_value
+     * @param string $passwd
+     * @return boolean
+     * @throws
+     */
+    public function syncPasswd($query_type, $query_value, $passwd)
+    {
+        try{
+            if(!in_array($query_value, ['uid', 'mobile'])){
+                throw $this->exception([
+                    'code' => ErrorConst::ZIDUAN_ERROR,
+                    'text' => '查询字段不正确'
+                ]);
+            }
+            return $this->mutex->getMutex('syncPasswd'.$query_value)->synchronized(function() use($query_type, $query_value, $passwd){
+                return  $this->db->transaction(function(DB $db) use ($query_type, $query_value, $passwd){
+                    $rs = $this->db->select('uid', 'login_name')->from('t_user_platform_relate')
+                        ->where([$query_type => $query_value])->get();
+                    if(!empty($rs)){
+                        foreach($rs as $rt){
+                            $this->db->update($rt['login_name'])->set([
+                                'password' => $passwd,
+                            ])->where([
+                                'uid' => $rt['uid']
+                            ])->exec();
+                        }
+                    }
+                    return true;
+                });
+            });
+        }catch(RuntimeException $e){
+            throw $this->exception([
+                'code' => ErrorConst::SYSTEM_ERROR,
+                'text' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * 同步各个平台的手机号码
+     * @param string $query_type
+     * @param string $query_value
+     * @param string $mobile
+     *
+     * @return boolean
+     * @throws
+     */
+    public function syncMobile($query_type, $query_value, $mobile)
+    {
+        try{
+            if(!in_array($query_type, ['uid', 'mobile'])){
+                throw $this->exception([
+                    'code' => ErrorConst::ZIDUAN_ERROR,
+                    'text' => '字段错误'
+                ]);
+            }
+            return $this->mutex->getMutex('syncMobile'.$query_value)->synchronized(function() use($query_type, $query_value, $mobile){
+                return $this->db->transaction(function(DB $db)use($query_type, $query_value, $mobile){
+                    $rs = $this->db->select('uid', 'login_name')->from('t_user_platform_relate')
+                        ->where([
+                            $query_type => $query_value,
+                        ])->get();
+                    if(!empty($rs)){
+                        foreach($rs as $rt){
+                            $this->db->update('t_user_platform_relate')->set([
+                                'mobile' => $mobile,
+                            ])->where([
+                                'uid' => $rt['uid'],
+                            ])->exec();
+                            $this->db->update('t_user_open')->set([
+                                'username' => $mobile
+                            ])->where([
+                                'uid' => $rt['uid']
+                            ])->exec();
+                            $rauth = $this->db->select('id')->from('t_user_authentication')
+                                ->where([
+                                    'uid' => $rt['uid']
+                                ])->getFirst();
+                            $this->db->update('t_user_mobile_authentication')->set([
+                                'mobile' => $mobile
+                            ])->where([
+                                'auid' => $rauth['id']
+                            ])->exec();
+                            $this->db->update('t_user_info')->set([
+                                'mobile' => $mobile,
+                            ])->where([
+                                'uid' => $rt['uid']
+                            ])->exec();
+                        }
+                    }
+                    return true;
+                });
+            });
+        }catch(RuntimeException $e){
+            throw $this->exception([
+                'code' => ErrorConst::SYSTEM_ERROR,
+                'text' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * 同步各个平台的银行卡号
+     * @param string $query_type
+     * @param string $query_value
+     * @param string $card_id
+     * @return boolean
+     */
+    public function syncBankCard($query_type, $query_value, $card_id)
+    {
+        return true;
+    }
+
+    /**
+     * 创建静默账号
+     * @param string $query_type
+     * @param $string $qery_value
+     * @param string $type
+     * @return boolean
+     * @throws
+     */
+    public function createSilentAccount($query_type, $query_value, $type)
+    {
+        try{
+            if(!in_array($query_type, ['uid', 'mobile'])){
+                throw $this->exception([
+                    'code' => ErrorConst::ZIDUAN_ERROR,
+                    'text' => '字段错误'
+                ]);
+            }
+
+        }catch(\Exception $e){
+            throw $this->exception([
+                'code' => ErrorConst::SYSTEM_ERROR,
+                'text' => $e->getMessage(),
+            ]);
+        }
+    }
+
     private function getOrderNumber() {
         return "ORD".time().rand(10000, 99999);
     }
