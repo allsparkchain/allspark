@@ -1039,4 +1039,245 @@ class UserController
         }
         return false;
     }
+
+    /**
+     * 好友邀请页面
+     * @Get("/inviteData", as="s_user_inviteData")
+     */
+    public function inviteData() {
+        //https://wx.pugongying.link/Share/index?invite_code=f47d4374&handurl=https://thirdwx.qlogo.cn/mmopen/vi_32/DYAIOgq83eqLEBIHbbU5FoU3xazWaeoBQ4ozwpGoslB7jGS8Bw03zdsqCY7LPrMTIYCDxbUICLWTicIkavBgYhA/142
+
+        $arr = [
+            'headImgurl'=>\Auth::getUser()->getHeadImgurl(),
+            'realname' =>\Auth::getUser()->getUserNickname()
+        ];
+
+        \Cache::forever($this->getRecommendCode(),$arr);
+
+        $wxHost = config('params.wx_host');
+        $fxurl = $wxHost.'Share/share?invite_code='.$this->getRecommendCode();
+
+
+        return view("User.inviteData")->with("code", $this->getRecommendCode())->with('fxurl',$fxurl);
+    }
+
+    /**
+     * 账户设置页面
+     * @Get("/accountSetting", as="s_user_accountSetting")
+     */
+    public function accountSetting() {
+        return view("User.accountSetting")->with('mobile',$this->getUserName());
+    }
+
+    /**
+     * 我的资讯页面
+     * @Get("/articleList", as="s_user_articleList")
+     */
+    public function articleList() {
+        return view("User.articleList");
+    }
+
+
+    //apiPost-------------
+    /**
+     * 获取账户总览数据
+     * @Post("/getAccountInfo", as="s_user_getAccountInfo")
+     */
+    public function getAccountInfo(Request $request) {
+        try {
+            $uid = $this->getUserId();
+
+            $page = $request->get("page",1);
+            $pagesize = $request->get("pagesize",10);
+            $post = Curl::post('/user/userAccountPage', $arr = [
+                'uid'=> $uid,
+                'page' =>$page,
+                'pagesize'=>$pagesize,
+            ]);
+
+            return new JsonResponse($post);
+        } catch (ApiException $e) {
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * 获取账户页面图表数据
+     * @Post("/getAccountInfoFlow", as="s_user_getAccountInfoFlow")
+     */
+    public function getAccountInfoFlow(Request $request) {
+        try {
+            $uid = $this->getUserId();
+            $seetype = $request->get("seetype",1);
+            /////
+            try{
+                $records = Curl::post('/user/getUserDayDraw',['uid'=>$uid,'seetype'=>$seetype]);
+            }catch (ApiException $e){
+                $records = [];
+            }
+//            if(isset($records['data']) && $records['data']['count'] >0){
+//                var_dump($records['data']);die;
+//                $info = [];
+//                $j = 0;
+//                for ($i=6;$i>=0;$i--){
+//                    $info[$j]['new_time'] = date('Y.m.d',strtotime('-'.$i.' day'));
+//                    $info[$j]['account'] = 0;
+//                    foreach ($records['data']['data'] as $key => $value){
+//                        if( date('Y.m.d',($value['add_time'])) ==  $info[$j]['new_time']){
+//                            $info[$j]['account'] = $value['account'];
+//                        }
+//                    }
+//                    $j++;
+//                }
+//                $records['data']['draw'] = $info;
+//            }else{
+//                //生成空的数据
+//                $now = time();
+//                $null_arr = [];
+//                for ($i = 1 ; $i<=7 ;$i++){
+//                    $null_arr[] = array('new_time'=>date('Y.m.d',strtotime('-'.$i.' day',$now)),'account'=>0);
+//                }
+//                $records['data']['draw'] = $null_arr;
+//            }
+            return new JsonResponse($records);
+        } catch (ApiException $e) {
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * 获取收益结算数据接口查询
+     * @Post("/getCommissionSettlement", as="s_user_getCommissionSettlement")
+     */
+    public function getCommissionSettlement(Request $request) {
+        try {
+            $uid = $this->getUserId();
+            $seetype = $request->get("seetype");
+            $page = $request->get("page",1);
+            $pagesize = $request->get("pagesize",10);
+            $post = Curl::post('/user/getUserCommissionRecordPage', $arr = [
+                'uid'=> $uid,
+                'seetype'=>$seetype,
+                'page' =>$page,
+                'pagesize'=>$pagesize,
+            ]);
+            //var_dump($post);die;
+            return new JsonResponse($post);
+        } catch (ApiException $e) {
+
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * 获取收益明细数据接口查询
+     * @Post("/getAccountCommissionSettlementDetail", as="s_user_getAccountCommissionSettlementDetail")
+     */
+    public function getAccountCommissionSettlementDetail(Request $request) {
+        try {
+            $uid = $this->getUserId();
+            $today = $request->get("today",-1);//1,-1
+            $startDay = $request->get("startDay",'');
+            $endDay = $request->get("endDay",'');
+            $page = $request->get("page",1);
+            $pagesize = $request->get("pagesize",10);
+
+            if(strlen($startDay)>0 && strlen($endDay)>0){
+                if(strtotime($startDay) > strtotime($endDay)){
+                    return new JsonResponse([
+                        "status"=>'309',
+                        "message"=>'日期选择不合法',
+                    ]);
+                }
+            }
+            $post = Curl::post('/user/settlementDetail', $arr = [
+                'uid'=> $uid,
+                'today'=>$today,
+                'startDay'=>$startDay,
+                'endDay'=>$endDay,
+                'page' =>$page,
+                'pagesize'=>$pagesize,
+            ]);
+            return new JsonResponse($post);
+        } catch (ApiException $e) {
+
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * 获取推广数据接口查询1
+     * @Post("/getSpreadData", as="s_user_getSpreadData")
+     */
+    public function getSpreadData(Request $request) {
+        try {
+            $uid = $this->getUserId();
+
+            //type2 测试数据显示
+//            $uid = 18;
+
+
+
+            $page = $request->get("page",1);
+            $pagesize = $request->get("pagesize",10);
+            $post = Curl::post('/user/accountSpreadData', $arr = [
+                'uid'=> $uid,
+                'page' =>$page,
+                'pagesize'=>$pagesize,
+            ]);
+            //var_dump($post);die;
+            return new JsonResponse($post);
+        } catch (ApiException $e) {
+
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * 获取推广 订单 数据接口查询2
+     * @Post("/getSpreadDataDetail", as="s_user_getSpreadDataDetail")
+     */
+    public function getSpreadDataDetail(Request $request) {
+        try {
+            $uid = $this->getUserId();
+
+            //type2 测试数据显示
+//            $uid = 18;
+
+
+            $spread_id = $request->get("spreadid",1);
+            $page = $request->get("page",1);
+            $pagesize = $request->get("pagesize",10);
+            $post = Curl::post('/user/accountSpreadDataDetail', $arr = [
+                'uid'=> $uid,
+                'spread_id'=>$spread_id,
+                'page' =>$page,
+                'pagesize'=>$pagesize,
+            ]);
+            //var_dump($post);die;
+            return new JsonResponse($post);
+        } catch (ApiException $e) {
+
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+            ]);
+        }
+    }
+
 }
