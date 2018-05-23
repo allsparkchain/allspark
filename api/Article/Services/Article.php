@@ -1157,4 +1157,512 @@ class Article
             ]);
         }
     }
+
+    /**
+     * 文章栏目 下的 文章列表
+     * @param $columnID
+     * @param $pageszie
+     * @param $page
+     * @return array
+     * @throws \App\Exceptions\RuntimeException
+     */
+    public function columnArticleList($columnID,$page, $pageszie)
+    {
+        try {
+            $where = ['t_column_relate.column_id'=>$columnID];
+            $order = [];
+            $joinRule = $this->db->select(DB::raw('t_article.name,t_article_column_relate.id as relateID'))
+                ->from('t_article_column_relate')
+                ->leftJoin("t_article")->on('t_article.id = t_article_column_relate.article_id');
+            if ($where) {
+                $joinRule->where($where);
+            }
+            if ($order) {
+                foreach ($order as $key => $value) {
+                    if ($value == DB::ORDER_BY_DESC || $value == DB::ORDER_BY_ASC) {
+                        $joinRule->orderBy($key, $value);
+                    }
+                }
+            } else {
+                $joinRule->orderBy('t_article_column_relate.add_time', DB::ORDER_BY_DESC);
+                $joinRule->orderBy('t_article_column_relate.status', DB::ORDER_BY_DESC);
+            }
+//            var_dump($joinRule->context->sql,$joinRule->context->params);
+            $pagination = new Pagination($joinRule, $page, $pageszie,$this->db);
+            $data = $pagination->get();
+            return $data;
+        } catch (\Exception $e) {
+            throw $this->exception([
+                'code'=>ErrorConst::SYSTEM_ERROR,
+                'text'=>$e->getTrace()
+            ]);
+        }
+    }
+
+    /**
+     * 添加文章栏目 关联 文章
+     * @param $columnId
+     * @param $articleId
+     * @return int
+     * @throws \App\Exceptions\RuntimeException
+     */
+    public function columnAddArticle($columnId, $articleId)
+    {
+//        $exist = $this->columnCheckExist($name);
+//        if(!is_null($exist)){
+//            throw $this->exception([
+//                'code'=>ErrorConst::DUPLICATE_INSERT,
+//                'text'=>'文章栏目已经存在'.$name
+//            ]);
+//        }
+        try {
+            $lastId = $this->db->insertInto('t_article_column_relate')->values([
+                'column_id'=>$columnId,
+                'article_id'=>$articleId,
+                'add_time' =>getCurrentTime()
+            ])->exec()->lastInsertId();
+            return $lastId;
+        } catch (\Exception $e) {
+            throw $this->exception([
+                'code'=>ErrorConst::SYSTEM_ERROR,
+                'text'=>$e->getTrace()
+            ]);
+        }
+    }
+    /**
+     * 删除文章栏目 下属 文章
+     * @param $id
+     * @return int
+     * @throws \App\Exceptions\RuntimeException
+     */
+    public function columnArticleDel($id)
+    {
+        try {
+            $res = $this->db->deleteFrom('t_column_relate')->where(['id'=>$id])->exec()->rows;
+            return $res;
+        } catch (\Exception $e) {
+            throw $this->exception([
+                'code'=>ErrorConst::SYSTEM_ERROR,
+                'text'=>$e->getTrace()
+            ]);
+        }
+    }
+
+    /**
+     * 点击栏目more查询对应 文章分类下的 文章列表
+     * @param $columnID
+     * @param $categoryId
+     * @param $pageszie
+     * @param $page
+     * @return array
+     * @throws \App\Exceptions\RuntimeException
+     */
+    public function columnCatgoryArticleList($categoryId = 0,$page, $pageszie)
+    {
+        try {
+            $where = ['t_article.status'=>1,'t_product.status'=>1];
+            $where['t_article.is_oss'] = 2;
+//            if($columnID>0){
+//                $where['t_article_column_relate.column_id'] = $columnID;
+//
+//            }
+            $order = [];
+
+            $joinRule = $this->db->select(DB::raw('t_article.name,
+            t_article_product_relate.percent,t_article.id as articleId,t_product.id as productId'))
+                ->from('t_article_product_relate')
+                ->leftJoin("t_article")->on('t_article.id=t_article_product_relate.article_id')
+                ->leftJoin("t_product")->on('t_product.id = t_article_product_relate.product_id')
+            ;
+            if($categoryId >0){
+                $where['t_article_category_relate.category_id'] = $categoryId;
+                $joinRule = $joinRule->leftJoin('t_article_category_relate')->on('t_article.id =t_article_category_relate.article_id');
+            }
+
+            if ($where) {
+                $joinRule->where($where);
+            }
+//            if($columnID == 0){
+//                $joinRule->orderBy('t_article_column_relate.id', DB::ORDER_BY_ASC);
+//            }
+            if ($order) {
+                foreach ($order as $key => $value) {
+                    if ($value == DB::ORDER_BY_DESC || $value == DB::ORDER_BY_ASC) {
+                        $joinRule->orderBy($key, $value);
+                    }
+                }
+            } else {
+                $joinRule->orderBy('t_article.sort', DB::ORDER_BY_DESC);
+                $joinRule->orderBy('t_article.add_time', DB::ORDER_BY_DESC);
+            }
+//            var_dump($joinRule->context->sql,$joinRule->context->params);
+            $pagination = new Pagination($joinRule, $page, $pageszie,$this->db);
+            $data = $pagination->get();
+            foreach ($data['data'] as $key=>$value){
+                $percent = json_decode($value['percent'],true);
+                $spread_percent = 0;
+                $spread_account = 0;
+                foreach ($percent as $k=>$v){
+                    if($v['mode'] == 2){//自媒体推广
+                        $spread_percent = $v['contents']['percent'];
+                        $spread_account = $v['contents']['account'];
+                        break;
+                    }
+                }
+
+                $specifications = $this->db->select('t_goods.id,t_goods.num,t_goods.selling_price')
+                    ->from("t_goods")
+                    ->where([
+                        't_goods.status'=>  1,
+                        't_goods.product_id' => $value['productId']
+                    ])->orderBy('t_goods.selling_price',DB::ORDER_BY_ASC)->get();
+                $price_arr = [];
+                foreach ($specifications as $k=>$v){
+                    $price_arr[] = $v['selling_price'];
+                }
+                if(count($price_arr) == 1){
+                    $data['data'][$key]['min_price'] = $data['data'][$key]['max_price'] = $price_arr[0];
+                }else{
+                    $data['data'][$key]['min_price'] = $price_arr[0];
+                    $data['data'][$key]['max_price'] = $price_arr[count($price_arr)-1];
+                }
+
+                //最低价 * （自媒体推广） 佣金百分比   + 固定金额
+                $data['data'][$key]['min_commission'] = bcadd(bcmul($data['data'][$key]['min_price'],$spread_percent/100),$spread_account);
+
+
+
+
+                $data['data'][$key]['img_path285'] = '';
+                $img = $this->db->select("*")->from('t_article_img')->where(['article_id'=>$value['articleId'],'status'=>1])->orderBy('t_article_img.orderby','asc')->getFirst();
+                if(!is_null($img)){
+                    $ori_path = $img['img_path'];
+
+                    if(strstr('jianzhiwangluo.oss',$ori_path)){
+                        $extension = explode('/',$ori_path);
+                        $name = $extension[count($extension) -1];
+
+                        $new_path285 = md5($name.'_285_285');
+                        $new_path86 = md5($name.'_86_86');
+                        $newpath285 = str_replace($name,$new_path285,$ori_path);
+                    }else{
+                        $newpath285 = $ori_path;
+                    }
+                    $data['data'][$key]['img_path285'] = $newpath285;
+                }
+
+                $data['data'][$key]['viewNums'] = 0;
+                $viewNums = $this->db->select(DB::raw('ifnull(count(article_id),0) as viewNums'))
+                    ->from("t_wx_article_info_view_quantity")
+                    ->where([
+                        'article_id' => $value['articleId']
+                    ])->groupBy('article_id')->getFirst();
+                if(!is_null($viewNums)){
+                    $data['data'][$key]['viewNums'] = $viewNums['viewNums'];
+                }
+
+
+            }
+            return $data;
+        } catch (\Exception $e) {
+            throw $this->exception([
+                'code'=>ErrorConst::SYSTEM_ERROR,
+                'text'=>$e->getTrace()
+            ]);
+        }
+    }
+
+    /**
+     * 最热/最新 文章栏目 下的 文章列表 前台展示
+     * @param $categoryId
+     * @param $pageszie
+     * @param $page
+     * @return array
+     * @throws \App\Exceptions\RuntimeException
+     */
+    public function columnListwithArticleList($categoryId = 0,$page, $pageszie)
+    {
+        try {
+            $where = [];
+//            $where = ['t_article.status'=>1,'t_product.status'=>1];
+
+
+            $order = [];
+
+            $joinRule = $this->db->select(DB::raw('t_article_column.id as ColumnId,t_article_column.name,t_article_column.article_category_id,t_industry.name as CategoryName'))
+                ->from('t_article_column')
+                ->leftJoin("t_industry")->on('t_industry.id = t_article_column.article_category_id')
+            ;
+//
+//            $joinRule = $this->db->select(DB::raw('t_article.name,t_article_column_relate.id as relateID,
+//            t_article_product_relate.percent,t_article.id as articleId,t_product.id as productId'))
+//                ->from('t_article_column_relate')
+//                ->leftJoin("t_article")->on('t_article.id = t_article_column_relate.article_id')
+//                ->leftJoin("t_article_product_relate")->on('t_article.id = t_article_product_relate.article_id')
+//                ->leftJoin("t_product")->on('t_product.id = t_article_product_relate.product_id')
+////            ;
+            if($categoryId >0){
+                $where['t_article_column.article_category_id'] = $categoryId;
+            }
+
+            if ($where) {
+                $joinRule->where($where);
+            }
+
+            if ($order) {
+                foreach ($order as $key => $value) {
+                    if ($value == DB::ORDER_BY_DESC || $value == DB::ORDER_BY_ASC) {
+                        $joinRule->orderBy($key, $value);
+                    }
+                }
+            } else {
+                $joinRule->orderBy('t_article_column.id', DB::ORDER_BY_ASC);
+            }
+//            var_dump($joinRule->context->sql,$joinRule->context->params);
+            $pagination = new Pagination($joinRule, $page, $pageszie,$this->db);
+            $data = $pagination->get();
+            foreach ($data['data'] as $key=>$value){
+
+                $articleList = $this->db->select(DB::raw('t_article.name,t_article_column_relate.id as relateID,
+                t_article_product_relate.percent,t_article.id as articleId,t_product.id as productId'))
+                    ->from("t_article_column_relate")
+                    ->leftJoin("t_article")->on('t_article.id = t_article_column_relate.article_id')
+                    ->leftJoin("t_article_product_relate")->on('t_article.id = t_article_product_relate.article_id')
+                    ->leftJoin("t_product")->on('t_product.id = t_article_product_relate.product_id')
+                    ->where([
+                        't_article_column_relate.column_id' => $value['ColumnId']
+                    ])->get();
+
+                if($value['ColumnId'] == 1 && count($articleList) == 0){
+//                    var_dump($articleList);die;
+                    $articleList = $this->getNewList()['data'];
+                }
+
+//                var_dump($articleList);die;
+                $data['data'][$key]['list'] = $articleList;
+                foreach ($articleList as $kk=>$vv){
+                    $percent = json_decode($vv['percent'],true);
+                    $spread_percent = 0;
+                    $spread_account = 0;
+                    foreach ($percent as $k=>$v){
+                        if($v['mode'] == 2){//自媒体推广
+                            $spread_percent = $v['contents']['percent'];
+                            $spread_account = $v['contents']['account'];
+                            break;
+                        }
+                    }
+
+                    $specifications = $this->db->select('t_goods.id,t_goods.num,t_goods.selling_price')
+                        ->from("t_goods")
+                        ->where([
+                            't_goods.status'=>  1,
+                            't_goods.product_id' => $vv['productId']
+                        ])->orderBy('t_goods.selling_price',DB::ORDER_BY_ASC)->get();
+                    $price_arr = [];
+                    foreach ($specifications as $k=>$v){
+                        $price_arr[] = $v['selling_price'];
+                    }
+                    if(count($price_arr) == 1){
+                        $data['data'][$key]['list'][$kk]['min_price'] = $data['data'][$key]['list'][$kk]['max_price'] = $price_arr[0];
+//                        $data['data'][$key]['min_price'] = $data['data'][$key]['max_price'] = $price_arr[0];
+                    }else{
+                        $data['data'][$key]['list'][$kk]['min_price'] = $price_arr[0];
+                        $data['data'][$key]['list'][$kk]['max_price'] = $price_arr[count($price_arr)-1];
+//                        $data['data'][$key]['min_price'] = $price_arr[0];
+//                        $data['data'][$key]['max_price'] = $price_arr[count($price_arr)-1];
+                    }
+
+                    //最低价 * （自媒体推广） 佣金百分比   + 固定金额
+//                    $data['data'][$key]['min_commission'] = bcadd(bcmul($data['data'][$key]['min_price'],$spread_percent/100),$spread_account);
+                    $data['data'][$key]['list'][$kk]['min_commission'] = bcadd(bcmul($data['data'][$key]['list'][$kk]['min_price'],$spread_percent/100),$spread_account);
+
+//                    $data['data'][$key]['img_path285'] = '';
+                    $data['data'][$key]['list'][$kk]['img_path285'] = '';
+                    $img = $this->db->select("*")->from('t_article_img')->where(['article_id'=>$vv['articleId'],'status'=>1])->orderBy('t_article_img.orderby','asc')->getFirst();
+                    if(!is_null($img)){
+                        $ori_path = $img['img_path'];
+                        if(strstr('jianzhiwangluo.oss',$ori_path)){
+                            $extension = explode('/',$ori_path);
+                            $name = $extension[count($extension) -1];
+
+                            $new_path285 = md5($name.'_285_285');
+                            $new_path86 = md5($name.'_86_86');
+                            $newpath285 = str_replace($name,$new_path285,$ori_path);
+                        }else{
+                            $newpath285 = $ori_path;
+                        }
+
+//                        $data['data'][$key]['img_path285'] = $newpath285;
+                        $data['data'][$key]['list'][$kk]['img_path285'] = $newpath285;
+                    }
+
+                    $data['data'][$key]['list'][$kk]['viewNums'] = 0;
+//                    $data['data'][$key]['viewNums'] = 0;
+                    $viewNums = $this->db->select(DB::raw('ifnull(count(article_id),0) as viewNums'))
+                        ->from("t_wx_article_info_view_quantity")
+                        ->where([
+                            'article_id' => $vv['articleId']
+                        ])->groupBy('article_id')->getFirst();
+                    if(!is_null($viewNums)){
+//                        $data['data'][$key]['viewNums'] = $viewNums['viewNums'];
+                        $data['data'][$key]['list'][$kk]['viewNums'] = $viewNums['viewNums'];
+                    }
+                }
+
+
+
+
+            }
+            return $data;
+        } catch (\Exception $e) {
+            throw $this->exception([
+                'code'=>ErrorConst::SYSTEM_ERROR,
+                'text'=>$e->getTrace()
+            ]);
+        }
+    }
+
+    /**
+     * 单个栏目下 对应 文章列表
+     * @param $columnID
+     * @param $page
+     * @param $pageszie
+     * @return array
+     * @throws \App\Exceptions\RuntimeException
+     */
+    public function columnWithArticleList($columnID = 0,$page, $pageszie)
+    {
+        try {
+            $where = ['t_article.status'=>1,'t_product.status'=>1];
+            $where['t_article.is_oss'] = 2;
+            if($columnID>0){
+                $where['t_article_column_relate.column_id'] = $columnID;
+
+            }
+            $order = [];
+
+            $joinRule = $this->db->select(DB::raw('t_article.name,t_article_column_relate.column_id as columnId,
+            t_article_product_relate.percent,t_article.id as articleId,t_product.id as productId'))
+                ->from('t_article_column_relate')
+                ->leftJoin('t_article_product_relate')->on('t_article_column_relate.article_id=t_article_product_relate.article_id')
+                ->leftJoin("t_article")->on('t_article.id=t_article_product_relate.article_id')
+                ->leftJoin("t_product")->on('t_product.id = t_article_product_relate.product_id')
+            ;
+
+            if ($where) {
+                $joinRule->where($where);
+            }
+
+            if ($order) {
+                foreach ($order as $key => $value) {
+                    if ($value == DB::ORDER_BY_DESC || $value == DB::ORDER_BY_ASC) {
+                        $joinRule->orderBy($key, $value);
+                    }
+                }
+            } else {
+                $joinRule->orderBy('t_article.sort', DB::ORDER_BY_DESC);
+                $joinRule->orderBy('t_article.add_time', DB::ORDER_BY_DESC);
+            }
+//            var_dump($joinRule->context->sql,$joinRule->context->params);
+            $pagination = new Pagination($joinRule, $page, $pageszie,$this->db);
+            $data = $pagination->get();
+            if($data['count'] == 0 && $columnID == 1){
+                $data = $this->getNewList();
+            }
+
+            foreach ($data['data'] as $key=>$value){
+                $percent = json_decode($value['percent'],true);
+                $spread_percent = 0;
+                $spread_account = 0;
+                foreach ($percent as $k=>$v){
+                    if($v['mode'] == 2){//自媒体推广
+                        $spread_percent = $v['contents']['percent'];
+                        $spread_account = $v['contents']['account'];
+                        break;
+                    }
+                }
+
+                $specifications = $this->db->select('t_goods.id,t_goods.num,t_goods.selling_price')
+                    ->from("t_goods")
+                    ->where([
+                        't_goods.status'=>  1,
+                        't_goods.product_id' => $value['productId']
+                    ])->orderBy('t_goods.selling_price',DB::ORDER_BY_ASC)->get();
+                $price_arr = [];
+                foreach ($specifications as $k=>$v){
+                    $price_arr[] = $v['selling_price'];
+                }
+                if(count($price_arr) == 1){
+                    $data['data'][$key]['min_price'] = $data['data'][$key]['max_price'] = $price_arr[0];
+                }else{
+                    $data['data'][$key]['min_price'] = $price_arr[0];
+                    $data['data'][$key]['max_price'] = $price_arr[count($price_arr)-1];
+                }
+
+                //最低价 * （自媒体推广） 佣金百分比   + 固定金额
+                $data['data'][$key]['min_commission'] = bcadd(bcmul($data['data'][$key]['min_price'],$spread_percent/100),$spread_account);
+
+
+
+
+                $data['data'][$key]['img_path285'] = '';
+                $img = $this->db->select("*")->from('t_article_img')->where(['article_id'=>$value['articleId'],'status'=>1])->orderBy('t_article_img.orderby','asc')->getFirst();
+                if(!is_null($img)){
+                    $ori_path = $img['img_path'];
+
+                    if(strstr('jianzhiwangluo.oss',$ori_path)){
+                        $extension = explode('/',$ori_path);
+                        $name = $extension[count($extension) -1];
+
+                        $new_path285 = md5($name.'_285_285');
+                        $new_path86 = md5($name.'_86_86');
+                        $newpath285 = str_replace($name,$new_path285,$ori_path);
+                    }else{
+                        $newpath285 = $ori_path;
+                    }
+
+                    $data['data'][$key]['img_path285'] = $newpath285;
+                }
+
+                $data['data'][$key]['viewNums'] = 0;
+                $viewNums = $this->db->select(DB::raw('ifnull(count(article_id),0) as viewNums'))
+                    ->from("t_wx_article_info_view_quantity")
+                    ->where([
+                        'article_id' => $value['articleId']
+                    ])->groupBy('article_id')->getFirst();
+                if(!is_null($viewNums)){
+                    $data['data'][$key]['viewNums'] = $viewNums['viewNums'];
+                }
+
+
+            }
+            return $data;
+        } catch (\Exception $e) {
+            throw $this->exception([
+                'code'=>ErrorConst::SYSTEM_ERROR,
+                'text'=>$e->getTrace()
+            ]);
+        }
+    }
+    public function getNewList(){
+        $where = ['t_article.status'=>1,'t_product.status'=>1];
+        $where['t_article.is_oss'] = 2;
+
+        $joinRule = $this->db->select(DB::raw('t_article.name,
+            t_article_product_relate.percent,t_article.id as articleId,t_product.id as productId'))
+            ->from('t_article_product_relate')
+            ->leftJoin("t_article")->on('t_article.id=t_article_product_relate.article_id')
+            ->leftJoin("t_product")->on('t_product.id = t_article_product_relate.product_id')
+        ;
+
+        if ($where) {
+            $joinRule->where($where);
+        }
+        $joinRule->orderBy('t_article.add_time', DB::ORDER_BY_DESC);
+        $joinRule->orderBy('t_article.sort', DB::ORDER_BY_DESC);
+
+        $pagination = new Pagination($joinRule, 1, 6,$this->db);
+        $data = $pagination->get();
+        return $data;
+    }
 }
