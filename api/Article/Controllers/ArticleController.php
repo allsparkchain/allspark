@@ -1483,4 +1483,208 @@ class ArticleController
     private function getRecommendCode() {
         return \Auth::getUser()->getRecommendCode();
     }
+
+    /**
+     * 文章详情信息
+     * @Get("/detailData", as="s_article_detailData")
+     */
+    public function detailData(Request $request) {
+        $id = $request->get('id');
+
+        $errorResponseArr = [
+            'status' => '404',
+            'message' => ''
+        ];
+
+        try {
+            $article = Curl::post('/article/getArticle',['articleid'=>$id,'status'=>1]);
+        } catch (ApiException $ex) {
+            return new JsonResponse([
+                "status"=>$ex->getCode(),
+                "message"=>$ex->getMessage(),
+            ]);
+        }
+
+        if(empty($article['data'])){
+            return new JsonResponse($errorResponseArr);
+        }
+
+        //140
+        try {
+            $goods = Curl::post('/product/getGoodsShow', $arr = [
+                'product_id' => $article['data']['product_id']
+            ]);
+
+        } catch (ApiException $e) {
+
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+            ]);
+        }
+        if(empty($goods['data'])){
+            return new JsonResponse($errorResponseArr);
+        }
+
+        $user = \Auth::getUser()?\Auth::getUser()->getAuthIdentifier(): '';
+
+        $commissionPercent = $article['data']['commissionPercent'];
+        //计算推广获得奖励
+        $article['data']['min_commission'] = number_format(($commissionPercent['2']['percent'] * $goods['data']['min_price'] / 100) + $commissionPercent['2']['account'], 2);
+        $article['data']['max_commission'] = number_format(($commissionPercent['2']['percent'] * $goods['data']['max_price'] / 100) + $commissionPercent['2']['account'], 2);
+
+        $article['data']['content'] = html_entity_decode($article['data']['content']);
+
+        if($goods['data']['expiration_time']==0){
+            $goods['data']['syts'] = "不限时";
+        }else{
+            $goods['data']['syts'] = $this->ShengYu_Tian_Shi_Fen($goods['data']['expiration_time']);
+        }
+
+        try {
+            //统计 查看页面次数
+            Curl::post('/weixin/addArticleQuantity', $arr = [
+                'article_id' => $id,
+                'uid' => $user ? $user : 0
+            ]);
+        } catch (ApiException $e) {
+
+        }
+
+
+        $ori_path = $goods['data']['img_path'];
+        $extension = explode('/',$ori_path);
+        $name = $extension[count($extension) -1];
+
+        $new_path325 = md5($name.'_325_325');
+        $goods['data']['new_path325'] = str_replace($name,$new_path325,$ori_path);
+
+        $rand = $request->get('rand','');
+
+        $respData = $article;
+        $respData['data'] = [];
+        $respData['data']['article'] = $article['data'];
+        $respData['data']['goods'] = $goods['data'];
+        return new JsonResponse($respData);
+    }
+
+    /**
+     * 推广码需要的数据
+     * @Get("/getSpreadQRcodeData", as="s_article_getSpreadQRcodeData")
+     */
+    public function getSpreadQRcodeData(Request $request) {
+        $errorResponseArr = [
+            'status' => '404',
+            'message' => ''
+        ];
+
+//        $token = time().rand(10000, 90000);
+//        $key = "weChatAjax" . \Session::getId();
+//        \Cache::forget($key);
+//        \Cache::add($key, $token, 60);
+
+
+        //没登录时 点击购买 用uid=1
+        if($request->get('default_user') == 1){
+            $uid = 1;
+        }else{
+            $isLogin = \Auth::getUser();
+            if(!$isLogin) {
+                return new JsonResponse($errorResponseArr);
+            }
+            $uid = $this->getUserId();
+        }
+
+
+        //create
+        try {
+            $aid = $request->get("aid",-1);
+            $aprs = $request->get("aprs",-1);
+            $article_id = $request->get("article_id",-1);
+            if(intval($aid) && $aid >0){
+                $post = Curl::post('/user/createSpreadQRcode', [
+                    'aprs' => $aprs,
+                    'spreadUid' => $uid
+                ]);
+//                $data = $post['data'];
+                if($post['status']==200){
+                    $post['data']['buyurl'] = config('params.wx_host').'User/productDetail?spreadid='.$post['data']['id'] .'&nid='.$post['data']['order_no'];
+
+                    $post['data']['articleurl'] = config('params.wx_host') . 'Article/articleInfo?spreadid=' . $post['data']['id'] . '&nid=' . $post['data']['order_no'];
+                    //$post['data']['url'] = file_get_contents('http://suo.im/api.php?url='.urlencode($post['data']['url']));
+
+                }
+
+                //一键转至公微
+                if(config('params.is_share')){
+                    $openPlatform = \Wechat::openPlatform('default');
+                    $html = config('params.weixin_callback');//
+                    $openUrl = $openPlatform->getPreAuthorizationUrl($html.'?id='.$aid.'&url='.urlencode($post['data']['url'])); // 传入回调URI即可
+                }else{
+                    $openUrl = 'javascript:;';
+                }
+
+                $post['data']['openUrl'] = $openUrl;
+                $post['data']['toutiaoUrl'] = route('s_toutiao') . '?encrypt=' . encrypt(['url' =>$post['data']['articleurl'], 'id' => $aid]);
+                return new JsonResponse($post);
+            }
+        } catch (ApiException $e) {
+
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * 文章列表页面
+     * @Get("/lists", as="s_aricle_lists")
+     * @param Request $request
+     * @return mixed
+     */
+    public function lists(Request $request) {
+        return view("Article.lists");
+    }
+
+    /**
+     * 文章more页面
+     * @Get("/moreLists", as="s_article_moreLists")
+     * @param Request $request
+     * @return mixed
+     */
+    public function moreLists(Request $request) {
+
+        return view("Article.moreLists");
+    }
+
+    /**
+     * 文章search页面
+     * @Get("/search", as="s_article_search")
+     * @param Request $request
+     * @return mixed
+     */
+    public function search(Request $request) {
+
+        return view("Article.search");
+    }
+
+    /**
+     * 文章详情页面
+     * @Get("/detail", as="s_aricle_detail")
+     */
+    public function detail0521(Request $request) {
+        return view("Article.detail");
+    }
+
+    /**
+     * 文章搜索页面
+     * @Get("/searchArticle", as="s_article_searchArticle")
+     * @param Request $request
+     * @return mixed
+     */
+    public function searchArticle(Request $request) {
+        return view("Article.searchArticle");
+    }
+
 }
