@@ -1687,4 +1687,235 @@ class ArticleController
         return view("Article.searchArticle");
     }
 
+
+    /**
+     * 首页banner
+     * @Post("/getBanner", as="s_aricle_getBanner")
+     */
+    public function getBanner(Request $request) {
+        try {
+            $page = $request->get("page",1);
+            $pagesize = $request->get("pagesize",5);
+            $arr = ['page'=>$page,'pagesize'=>$pagesize,'img_type'=>1];
+            $post = Curl::post('/article/imgTitleList', $arr);
+            return new JsonResponse($post);
+        } catch (ApiException $e) {
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * 文章分类列表页面Ajax
+     * @Post("/getCategoryList", as="s_aricle_getCategoryList")
+     */
+    public function getCategoryList(Request $request) {
+        try {
+            $arr = ['status'=>1,'type'=>2];
+//            $post = Curl::post('/article/getArticleCategoryList', ['status'=>1]);
+//            $post = Curl::post('/productCategory/getProductCategoryList', ['status'=>1]);
+
+//            $post = Curl::post('/industry/getLists', $arr);
+
+//            $post = getRedisData('ArticlegetCategoryList'.md5(json_encode($request->all())),'/industry/getLists',$arr);
+
+            $arr = ['type'=>2,'status'=>1,'order' =>'{"order":"DESC"}'];
+            $post = getRedisData('ArticlegetCategoryList'.md5(json_encode($request->all())),'/industryCategory/getLists',$arr);
+
+
+            return new JsonResponse($post);
+        } catch (ApiException $e) {
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * 获得推广二维码
+     * @Post("/createSpreadQRcode", as="s_aricle_createSpreadQRcode")
+     */
+    public function createSpreadQRcodes(Request $request) {
+        try {
+            $aid = $request->get("aid",-1);
+            $aprs = $request->get("aprs",-1);
+            if(intval($aid) && $aid >0){
+                $post = Curl::post('/user/createSpreadQRcode', [
+                    'aprs' => $aprs,
+                    'spreadUid' => $this->getUserId()
+                ]);
+                $data = $post['data'];
+                if($post['status']==200){
+                    if($post['data']['product_type'] == 3){
+
+                        if(stristr($post['data']['landing_page'],'?')){
+                            $post['data']['landing_page'] = $post['data']['landing_page'].'&spreadid='.$post['data']['id'].'&productid='.$post['data']['productId'].'&articleid='.$post['data']['article_id'];
+                        }else{
+                            $post['data']['landing_page'] = $post['data']['landing_page'].'?spreadid='.$post['data']['id'].'&productid='.$post['data']['productId'].'&articleid='.$post['data']['article_id'];
+                        }
+                        $post['data']['url'] = $post['data']['landing_page'];
+                    }else{
+                        $post['data']['url'] = config('params.wx_host').'User/productDetail?spreadid='.$post['data']['id'] .'&nid='.$post['data']['order_no'];
+                    }
+
+                    //$post['data']['url'] = file_get_contents('http://suo.im/api.php?url='.urlencode($post['data']['url']));
+                }
+
+//               var_dump($data);die;
+                return new JsonResponse($post);
+            }
+        } catch (ApiException $e) {
+
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+            ]);
+        }
+    }
+
+//    /**
+//     * 添加用户行业分类关联
+//     * @Post("/addUidIndustry", as="s_aricle_addUidIndustry")
+//     */
+//    public function addUidIndustry(Request $request) {
+//        try {
+//            $uid = $this->getUserId();
+//            $industry_id = $request->get("industry_id",-1);
+//            if(intval($industry_id) && $industry_id >0){
+//                $post = Curl::post('/industry/AddUidIndustry', [
+//                    'uid' => $uid,
+//                    'industry_id' => $industry_id
+//                ]);
+//
+//                return new JsonResponse($post);
+//            }
+//        } catch (ApiException $e) {
+//
+//            return new JsonResponse([
+//                "status"=>$e->getCode(),
+//                "message"=>$e->getMessage(),
+//            ]);
+//        }
+//    }
+
+    /**
+     * 点击一键转公微 统计
+     * @Post("/addZhuanQuantity", as="s_article_addZhuanQuantity")
+     */
+    public function getCategorList(Request $request) {
+        try {
+            $spread_id = $request->get("spread_id",-1);
+            if($spread_id >0){
+                $user = \Auth::getUser()?\Auth::getUser()->getAuthIdentifier(): '';
+                Curl::post('/weixin/addZhuanQuantity', $arr = [
+                    'spread_id' => $spread_id,
+                    'uid' => $user ? $user : 0
+                ]);
+            }
+
+        } catch (ApiException $e) {
+
+        }
+
+    }
+
+
+    /**
+     * 添加所选分类
+     * @Post("/postCategoryChose", as="s_aricle_postCategoryChose")
+     */
+    public function postCategoryChoses(Request $request) {
+        try {
+            $uid = $this->getUserId();
+            $category_name = $request->get("category_name",'');
+            if($uid>0 && strlen($category_name)>0 ){
+                $post = Curl::post('/article/postCategoryChose', [
+                    'uid' => $uid,
+                    'category_name' => $category_name
+                ]);
+                return new JsonResponse($post);
+            }
+        } catch (ApiException $e) {
+
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * 文章首页ajax
+     * @Post("/getArticleIndex", as="s_aricle_getArticleIndex")
+     */
+    public function getArticleIndex(Request $request) {
+        try {
+            //old getArticleWithProductList
+
+            $category_id = $request->get("category_id",0);
+            $region_id = $request->get("region_id",0);
+
+            $arr = [];
+//            if ($category_id > 0) {
+//                $arr['order'] = json_encode(['t_article.sort' => 'DESC', 't_article.add_time' => 'DESC']);
+//            }
+            if($category_id > 0){
+                $where['category_id'] = $category_id;
+            }
+            if($region_id >0){
+                $arr['region_id'] = $region_id;
+            }
+            $post = getRedisData('getArticleIndex'.md5(json_encode($request->all())),'/article/columnListwithArticleList',$arr);
+            return new JsonResponse($post);
+        } catch (ApiException $e) {
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * 文章more、search列表页面ajax
+     * @Post("/getArticleList", as="s_aricle_getArticleList")
+     */
+    public function getArticleList(Request $request) {
+        try {
+            //old getArticleWithProductList
+
+            $page = $request->get("page",1);
+            $pagesize = $request->get("pagesize",10);
+            $category_id = $request->get("category_id",0);
+            $region_id = $request->get("region_id",0);
+            $name = $request->get("name",'');
+            $arr = [
+                'page'=>$page,
+                'pagesize'=>$pagesize
+            ];
+//            if ($category_id > 0) {
+//                $arr['order'] = json_encode(['t_article.sort' => 'DESC', 't_article.add_time' => 'DESC']);
+//            }
+            if($category_id > 0){
+                $arr['category_id'] = $category_id;
+            }
+            if($region_id >0){
+                $arr['region_id'] = $region_id;
+            }
+            if(strlen($name) > 0){
+                $arr['name'] = $name;
+            }
+            $post = getRedisData('getArticleList'.md5(json_encode($request->all())),'/article/columnCatgoryArticleList',$arr);
+            return new JsonResponse($post);
+        } catch (ApiException $e) {
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+            ]);
+        }
+    }
+
+
 }
