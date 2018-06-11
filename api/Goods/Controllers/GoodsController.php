@@ -1638,6 +1638,6 @@ class GoodsController
         if ($sortArr) $order = json_encode($sortArr);
         return $order;
     }
-}
+
 
 }
