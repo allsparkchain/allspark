@@ -1280,4 +1280,240 @@ class UserController
         }
     }
 
+
+    /**
+     * 新手机号修改
+     * @Post("/ChangeNewMobile", as="s_user_ChangeNewMobile")
+     */
+    public function ChangeNewMobile(Request $request) {
+        try {
+
+//
+//            if($code <=0 || !is_numeric($code)){
+//                return new JsonResponse([
+//                    "status"=>'333',
+//                    "message"=>'传递参数非法或者缺少参数',
+//                ]);
+//            }
+            $session = \Session::get("changeMobile");
+            $session = json_decode($session, true);
+
+            if(!isset($session['new']) && $session['new'] != 1){
+                return redirect(route('s_user_accountInfo'));
+            }
+
+            if(!isset($session['newmobile'])){
+                return redirect(route('s_user_accountInfo'));
+            }
+            $newmobile = Arr::get($session, 'newmobile', '');
+            $mobile = Arr::get($session, 'mobile', '');
+            $order_number = Arr::get($session, 'order_number', '');
+
+            $post = Curl::post('/user/changeMobile', [
+                'mobile' =>$mobile,
+                'newmobile' => $newmobile,
+                'orderNumber' => $order_number,
+            ]);
+            if($post['status']==200){
+                $this->setMobile($newmobile);
+                \Session::forget("changeMobile");
+            }
+
+            return new JsonResponse($post);
+        } catch (ApiException $e) {
+
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+            ]);
+        }
+    }
+
+
+    /**
+     * 检查手机号是否已经存在接口 user_info表
+     * @Post("/checkMobileExist", as="s_user_checkMobileExist")
+     */
+    public function checkMobileExist(Request $request) {
+        try {
+
+//            $mobile = esaDecode($request->get("mobile",''));
+            $mobile = $request->get("mobile",0);
+            //clearAES();
+            $post = Curl::post('/user/checkMobileByUserInfo', [
+                'mobile' => $mobile,
+            ]);
+
+            return new JsonResponse($post);
+        } catch (ApiException $e) {
+
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+
+            ]);
+        }
+    }
+
+    /**
+     * 检查手机号是否绑定
+     * @Post("/checkisUserMobile", as="s_user_checkisUserMobile")
+     */
+    public function checkisUserMobile(Request $request) {
+        $post = $this->isUserMobile();
+        return new JsonResponse($post);
+    }
+
+    /**
+     * 查询是否绑定手机号
+     * @return array
+     */
+    private function isUserMobile(){
+        try {
+            $uid = $this->getUserId();
+            $post = Curl::post('/user/isUserMobile', [
+                'uid' => $uid,
+            ]);
+            return $post;
+        } catch (ApiException $e) {
+            return [
+                'data'=>[],
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+
+            ];
+        }
+    }
+
+    /**
+     * 检查密码是否绑定
+     * @Post("/checkisUserPassword", as="s_user_checkisUserPassword")
+     */
+    public function checkisUserPassword(Request $request) {
+        try {
+            $uid = $this->getUserId();
+            $post = Curl::post('/user/isUserPassword', [
+                'uid' => $uid,
+            ]);
+            return new JsonResponse($post);
+        } catch (ApiException $e) {
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+
+            ]);
+        }
+    }
+
+    /**
+     * 绑定密码
+     * @Post("/bindSetPassword", as="s_user_bindSetPassword")
+     */
+    public function bindSetPassword(Request $request) {
+        try {
+            $mobile = $this->getUserMobile();
+            $newpasswd = $request->get('newpasswd','');
+            if(strlen($newpasswd)<6){
+                return new JsonResponse([
+                    "status"=>'201',
+                    "message"=>'密码不小于6位',
+                ]);
+            }
+            $post = Curl::post('/user/setPassword', [
+                'mobile' => $mobile,
+                'newpasswd'=>$newpasswd
+            ]);
+            return new JsonResponse($post);
+        } catch (ApiException $e) {
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+
+            ]);
+        }
+    }
+
+
+    /**
+     * 发送绑定手机验证码
+     * @Post("/sendBindMobileSms", as="s_user_sendBindMobileSms")
+     */
+    public function sendBindMobileSms(Request $request) {
+        try {
+            $mobile = $request->get("mobile",'');
+            $post = Curl::post('/utils/message/createMsg', [
+                'mobile' => $mobile,
+                'type' => 11
+            ]);
+            $data = $post['data'];
+            unset($post['data']);
+            \Session::put("sendBindMobileSms", json_encode(["mobile"=>$mobile, "order_number"=>$data['order_number']]));
+            return new JsonResponse($post);
+        } catch (ApiException $e) {
+
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * 验证验证码
+     * @Post("/validatorBindMobileSms", as="s_user_validatorBindMobileSms")
+     */
+    public function validatorBindMobileSms(Request $request) {
+        try {
+
+            $code = $request->get("code");
+            $session = \Session::get("sendBindMobileSms");
+            $session = json_decode($session, true);
+            $mobile = Arr::get($session, 'mobile', '');
+            $post = Curl::post('/utils/message/verificationSms', [
+                'mobile' => $mobile,
+                'code' => $code,
+                'type' => 11,
+                'order_number' => Arr::get($session, 'order_number', ''),
+            ]);
+            $data = $post['data'];
+            unset($post['data']);
+            \Session::put("sendBindMobileSms", json_encode(["mobile"=>$mobile, "order_number"=>$data['order_number']]));
+
+            return new JsonResponse($post);
+        } catch (ApiException $e) {
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * 提交绑定手机号
+     * @Post("/bindSetMobile", as="s_user_bindSetMobile")
+     */
+    public function bindSetMobile(Request $request) {
+        try {
+            $session = \Session::get("sendBindMobileSms");
+            $session = json_decode($session, true);
+            $mobile = Arr::get($session, 'mobile', '');
+            //绑定手机号
+            $postbindmobile = Curl::post('/user/bindMobile', [
+                'uid' => $this->getUserId(),
+                'mobile' => $mobile,
+                'orderNumber' => Arr::get($session, 'order_number', ''),
+            ]);
+            if($postbindmobile['data']){
+                $this->setMobile($mobile);
+            }
+            \Session::forget("sendBindMobileSms");
+            return new JsonResponse($postbindmobile);
+        } catch (ApiException $e) {
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+
+            ]);
+        }
+    }
 }
