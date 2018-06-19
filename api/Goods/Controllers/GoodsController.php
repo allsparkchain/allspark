@@ -1624,6 +1624,373 @@ class GoodsController
         }
     }
 
+
+    /**
+     * 小程序 市集 产品列表
+     * @param $categoryId
+     * @param $type
+     * @param $page
+     * @param $pageszie
+     * @param $order
+     * @return array
+     * @throws \App\Exceptions\RuntimeException
+     */
+    public function getProductListLite($categoryId, $type, $page, $pageszie, $order=[])
+    {
+        try {
+            $now = getCurrentTime();
+            $where['t_product.status'] = 1;
+
+            if($categoryId>0){
+                $where['t_product.category_id'] = $categoryId;
+            }
+
+            $joinRule = $this->db->select(
+                DB::raw('t_product.id as productId,t_product_img.img_path,t_product.category_id')
+            )
+                ->from("t_product")
+                ->leftJoin('t_product_img')->on('t_product.id = t_product_img.product_id')
+            ;
+            $joinRule = $joinRule->where($where);
+            $joinRule = $joinRule->where(['t_product.expiration_time'=>['>'=>DB::raw($now.' or t_product.expiration_time=0')]]);
+
+            if ($order) {
+                foreach ($order as $key => $value) {
+                    if ($value == DB::ORDER_BY_DESC || $value == DB::ORDER_BY_ASC) {
+                        $joinRule->orderBy($key, $value);
+                    }
+                }
+            } else {
+                $joinRule->orderBy('t_product.add_time', DB::ORDER_BY_DESC);
+            }
+//            var_dump($joinRule->context->sql,$joinRule->context->params);
+            $pagination = new Pagination($joinRule, $page, $pageszie);
+            $data = $pagination->get();
+            foreach ($data['data'] as $key=>$value) {
+                //价格范围
+                $specifications = $this->db->select(
+                    't_goods.id,t_goods.num,t_goods.selling_price'
+                )
+                    ->from("t_goods")
+                    ->where([
+                        't_goods.status'=>  1,
+                        't_goods.product_id' => $value['productId']
+                    ])->orderBy('t_goods.selling_price',DB::ORDER_BY_ASC)->get();
+                $price_arr = [];
+                foreach ($specifications as $k=>$v){
+                    $price_arr[] = $v['selling_price'];
+                }
+                if(count($price_arr) == 1){
+                    $data['data'][$key]['min_price'] = $data['data'][$key]['max_price'] = $price_arr[0];
+                }else{
+                    $data['data'][$key]['min_price'] = $price_arr[0];
+                    $data['data'][$key]['max_price'] = $price_arr[count($price_arr)-1];
+                }
+                //图片
+                if( is_json($value['img_path']) ){
+                    $img_path_type = $this->container->get('img_path_type')?$this->container->get('img_path_type'): 'oss' ;
+                    $imgPath = json_decode($value['img_path'],true);
+                    $data['data'][$key]['img_path'] = $imgPath[$img_path_type];
+                    //获得裁切的图片
+                    $ori_path = $data['data'][$key]['img_path'];
+                    $extension = explode('/',$ori_path);
+                    $name = $extension[count($extension) -1];
+                    $new_path325 = md5($name.'_325_325');
+                    $data['data'][$key]['newpath325'] = str_replace($name,$new_path325,$ori_path);
+
+                }
+
+            }
+            return $data;
+        } catch (\Exception $e) {
+            throw $this->exception([
+                'code'=>ErrorConst::SYSTEM_ERROR,
+                'text'=>$e->getTrace()
+            ]);
+        }
+        return [];
+
+
+    }
+
+    /**
+     * 小程序 市集 产品列表 精选
+     * @param $categoryId
+     * @param $type
+     * @param $page
+     * @param $pageszie
+     * @param $order
+     * @return array
+     * @throws \App\Exceptions\RuntimeException
+     */
+    public function getProductSellListLite($categoryId, $type, $page, $pageszie, $order=[])
+    {
+        try {
+            $now = getCurrentTime();
+            $where['t_product.status'] = 1;
+
+            if($categoryId>0){
+                $where['t_product.category_id'] = $categoryId;
+            }
+            $joinRule = $this->db->select(
+                DB::raw('t_product.id as productId,t_product_img.img_path,t_product.category_id,count(distinct(t_product_order.id)) as nums')
+            )
+                ->from("t_order")
+                ->leftJoin('t_product_order')->on('t_order.id = t_product_order.order_id')
+                ->leftJoin('t_product')->on('t_product.id = t_product_order.product_id')
+                ->leftJoin('t_product_img')->on('t_product.id = t_product_img.product_id')
+            ;
+            $joinRule = $joinRule->where($where);
+            $joinRule = $joinRule->where(['t_product.expiration_time'=>['>'=>DB::raw($now.' or t_product.expiration_time=0')]]);
+            $joinRule->groupBy('t_product.id');
+            if ($order) {
+                foreach ($order as $key => $value) {
+                    if ($value == DB::ORDER_BY_DESC || $value == DB::ORDER_BY_ASC) {
+                        $joinRule->orderBy($key, $value);
+                    }
+                }
+            } else {
+                $joinRule->orderBy('nums', DB::ORDER_BY_DESC);
+            }
+//            var_dump($joinRule->context->sql,$joinRule->context->params);
+
+            $pagination = new Pagination($joinRule, $page, $pageszie,$this->db);
+            $data = $pagination->get();
+
+            foreach ($data['data'] as $key=>$value) {
+                //价格范围
+                $specifications = $this->db->select(
+                    't_goods.id,t_goods.num,t_goods.selling_price'
+                )
+                    ->from("t_goods")
+                    ->where([
+                        't_goods.status'=>  1,
+                        't_goods.product_id' => $value['productId']
+                    ])->orderBy('t_goods.selling_price',DB::ORDER_BY_ASC)->get();
+                $price_arr = [];
+                foreach ($specifications as $k=>$v){
+                    $price_arr[] = $v['selling_price'];
+                }
+                if(count($price_arr) == 1){
+                    $data['data'][$key]['min_price'] = $data['data'][$key]['max_price'] = $price_arr[0];
+                }else{
+                    $data['data'][$key]['min_price'] = $price_arr[0];
+                    $data['data'][$key]['max_price'] = $price_arr[count($price_arr)-1];
+                }
+                //图片
+                if( is_json($value['img_path']) ){
+                    $img_path_type = $this->container->get('img_path_type')?$this->container->get('img_path_type'): 'oss' ;
+                    $imgPath = json_decode($value['img_path'],true);
+                    $data['data'][$key]['img_path'] = $imgPath[$img_path_type];
+                    //获得裁切的图片
+                    $ori_path = $data['data'][$key]['img_path'];
+                    $extension = explode('/',$ori_path);
+                    $name = $extension[count($extension) -1];
+                    $new_path325 = md5($name.'_325_325');
+                    $data['data'][$key]['newpath325'] = str_replace($name,$new_path325,$ori_path);
+                }
+            }
+            return $data;
+        } catch (\Exception $e) {
+            throw $this->exception([
+                'code'=>ErrorConst::SYSTEM_ERROR,
+                'text'=>$e->getTrace()
+            ]);
+        }
+        return [];
+
+
+    }
+
+    /**
+     * 小程序产品bannerlist
+     *
+     * @param $admin
+     * @param $page
+     * @param $pageszie
+     * @return array
+     * @throws \App\Exceptions\RuntimeException
+     */
+    public function getProductBannerLite($admin = -1, $page = 1, $pageszie = 10)
+    {
+        try {
+            $where = [];
+            $order = [];
+
+            $now = getCurrentTime();
+            $joinRule = $this->db->select(
+                "t_product.product_name,t_product_banner.id,t_product.status,t_product.expiration_time,t_product_img.img_path",
+                DB::raw($now.' as NowTime，t_product.id as productId')
+
+            )->from("t_product_banner")
+                ->leftJoin('t_product')->on('t_product_banner.product_id = t_product.id')
+                ->leftJoin('t_product_img')->on('t_product.id = t_product_img.product_id')
+            ;
+
+            if($admin == 1){
+                //后台
+            }else{
+                $where['t_product.status'] = 1;
+            }
+
+            $joinRule = $joinRule->where($where);
+            if($admin != 1){
+                //前台展示 不过期产品
+                $joinRule = $joinRule->where(['t_product.expiration_time'=>['>'=>DB::raw($now.' or t_product.expiration_time=0')]]);
+            }
+            if ($order) {
+                foreach ($order as $key => $value) {
+                    if ($value == DB::ORDER_BY_DESC || $value == DB::ORDER_BY_ASC) {
+                        $joinRule->orderBy($key, $value);
+                    }
+                }
+            } else {
+                $joinRule->orderBy('t_product_banner.add_time', DB::ORDER_BY_DESC);
+            }
+//            var_dump($joinRule->context->sql,$joinRule->context->params);
+            $pagination = new Pagination($joinRule, $page, $pageszie,$this->db);
+            $data = $pagination->get();
+            foreach ($data['data'] as $key=>$value) {
+                //图片
+                if( is_json($value['img_path']) ){
+                    $img_path_type = $this->container->get('img_path_type')?$this->container->get('img_path_type'): 'oss' ;
+                    $imgPath = json_decode($value['img_path'],true);
+                    $data['data'][$key]['img_path'] = $imgPath[$img_path_type];
+                }
+
+            }
+            return $data;
+        } catch (\Exception $e) {
+            throw $this->exception([
+                'code'=>ErrorConst::SYSTEM_ERROR,
+                'text'=>$e->getTrace()
+            ]);
+        }
+    }
+    /**
+     * 添加 小程序 产品banner
+     * @param $productId
+     * @return boolean
+     * @throws \App\Exceptions\RuntimeException
+     */
+    public function addProductBannerLite($productId)
+    {
+        try {
+            $now  = getCurrentTime();
+            //检查是否已经存在
+            $joinRule = $this->db->select(
+                "*"
+            )->from("t_product_banner")->where(['product_id'=>$productId])->getFirst();
+//            var_dump($joinRule);die;
+            if(!is_null($joinRule)){
+                throw $this->exception([
+                    'code'=>ErrorConst::PRODUCT_BANNER_EXIST,
+                    'text'=>'产品banner 已存在'.$productId
+                ]);
+            }
+
+            $rs = $this->db->insertInto('t_product_banner')->values([
+                'product_id' => $productId,
+                'add_time'=>$now,
+            ])->exec();
+            return !!$rs;
+        } catch (\PDOException $e) {
+            throw $this->exception([
+                'code'=>ErrorConst::SYSTEM_ERROR,
+                'text'=>$e->getTrace()
+            ]);
+        }
+    }
+
+    /**
+     * 删除 小程序 产品banner
+     * @param $id
+     * @return boolean
+     * @throws \App\Exceptions\RuntimeException
+     */
+    public function delProductBannerLite($id)
+    {
+        try {
+            $rs = $this->db->deleteFrom('t_product_banner')->where(['id'=>$id])->exec();
+            return !!$rs;
+        } catch (\Exception $e) {
+            throw $this->exception([
+                'code'=>ErrorConst::SYSTEM_ERROR,
+                'text'=>$e->getTrace()
+            ]);
+        }
+    }
+
+
+    /**
+     * 小程序的 产品详情
+     * @param $productId
+     * @return null
+     * @throws \App\Exceptions\RuntimeException
+     * @throws \DI\DependencyException
+     * @throws \DI\NotFoundException
+     */
+    public function getproductDetailLite($productId)
+    {
+        try {
+            $joinRule = $this->db->select(
+                't_product.id,t_product.add_time',
+                DB::raw('t_product.product_name as name,t_product.product_type,t_product.landing_page,t_product_img.img_path,t_product_img.lengths,t_product_img.width,t_product.synopsis as summary,t_product.id as product_id'),
+                DB::raw('t_product.status as product_status,t_product.product_name,t_product.specifications,t_product.selling_price,t_product.num'),
+                DB::raw('t_product_info.contents')
+            )
+                ->from("t_product")
+                ->leftJoin('t_product_img')->on('t_product.id=t_product_img.product_id')
+                ->leftJoin('t_product_info')->on('t_product_info.product_id=t_product.id')
+                ->where([
+                    't_product.id'=>  $productId
+                ]);
+//            var_dump($joinRule->context->sql,$joinRule->context->params);
+            $joinRule = $joinRule->getFirst();
+            if($joinRule){
+                //
+                if(is_json($joinRule['specifications'])){
+                    $joinRule['spelist'] = json_decode($joinRule['specifications'],true);
+                }
+
+                //获得 不同规格组合的 数据
+                $specifications = $this->db->select(
+                    't_goods.id,t_goods.num,t_goods.selling_price',
+                    DB::raw('t_goods_specifications.specifications')
+                )
+                    ->from("t_goods")
+                    ->leftJoin('t_goods_specifications')->on('t_goods.specifications_id=t_goods_specifications.id')
+                    ->where([
+                        't_goods.status'=>  1,
+                        't_goods.product_id' => $joinRule['product_id']
+                    ])->get();
+                foreach ( $specifications as $key=>$value){
+                    if(is_json($value['specifications'])){
+                        $specifications[$key]['show'] = json_decode($value['specifications'],true);
+                    }
+
+                }
+                $joinRule['specificationsList'] = $specifications;
+
+                if( is_json($joinRule['img_path']) ) {
+                    $img_path_type = $this->container->get('img_path_type') ? $this->container->get('img_path_type') : 'oss';
+                    $imgPath = json_decode($joinRule['img_path'], true);
+                    $joinRule['img_path'] = empty($imgPath[$img_path_type]) ? 'oss' : $imgPath[$img_path_type];
+                }
+            }
+            return $joinRule;
+
+        }catch(\PDOException $e){
+            throw $this->exception([
+                'code'=>ErrorConst::SYSTEM_ERROR,
+                'text'=>$e->getTrace()
+            ]);
+        }
+
+
+
+    }
+
     private function getOrder(Request $request, $order) {
         $sortArr = [];
         if ($request->get('orderTime') == 1) {
