@@ -1611,4 +1611,1357 @@ class UserController
             ->with('selling_price',$selling_price)
             ;
     }
+
+    /**
+     * 获取好友邀请页面
+     * @Post("/getInviteFriend", as="s_user_getInviteFriend")
+     */
+    public function getInviteFriend(Request $request) {
+        try {
+
+            //初始化数据
+            $now = getCurrentTime();
+            $starttime = 0;
+            $endtime = 0;
+
+
+            $name = $request->get("name",'');
+            $page = $request->get("page",1);
+            $pagesize = $request->get("pagesize",10);
+
+
+            $time_fliter = $request->get("time_fliter",'all');//all  recent_30 recent_7 today
+
+            //时间过滤
+            if($time_fliter == 'recent_30'){
+                $starttime = strtotime('-30 day',$now);
+            }
+            if($time_fliter == 'recent_7'){
+                $starttime = strtotime('-7 day',$now);
+            }
+            if($time_fliter == 'today'){
+                $starttime = strtotime(date('Y-m-d',$now));
+            }
+
+            $uid = $this->getUserId();
+//            $uid = 22;
+            $post = Curl::post('/user/getInviteFriendByUId',
+                [
+                    'uid' => $uid,
+                    'endtime'=>$endtime,
+                    'starttime'=>$starttime,
+                    'pagesize'=>$pagesize,
+                    'page'=>$page
+                ]
+            );
+
+
+            if($post['status'] == 200){
+                foreach ($post['data']['data'] as $key =>$val){
+                    $post['data']['data'][$key]['nickname'] = json_decode($val['content'],true)['nickname'];
+                }
+            }
+
+
+            return new JsonResponse($post);
+        } catch (ApiException $e) {
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * 获取银行卡列表数据
+     * @Post("/getUserBankRelative", as="s_user_getUserBankRelative")
+     */
+    public function getUserBankRelative(Request $request) {
+        try {
+
+            $id = $request->get("id",0);
+            $post = Curl::post('/user/getUserBankRelative',
+                [
+//                    'id' => $id
+                ]
+            );
+            return new JsonResponse($post);
+        } catch (ApiException $e) {
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * 绑定银行卡
+     * @Post("/bindBankCard", as="s_user_bindBankCard")
+     * @param int $bind_realname 真实姓名
+     * @param int $code 短信验证码
+     * @param int $order_number
+     * @param int $bind_idnumber 身份证号码
+     * @param int $bind_banknumber 银行卡号
+     * @param int $bind_mobile 手机号码
+     * @param int $bank_relative 银行编号
+     * @param int $bank_id 银行编号
+     * @param int $province_id 支行省份
+     * @param int $city_id 支行城市
+     * @param int $bank_name 支行名称
+     * @param string $sub_branch_id 支行编号
+     */
+    public function bindBankCardTmp(Request $request) {
+        try {
+            $realname = $request->get('bind_realname', '');
+            $code = $request->get('code', '');
+            $idnumber = $request->get('bind_idnumber', '');
+            $bind_banknumber = $request->get('bind_banknumber', '');
+            $bind_mobile = $request->get('bind_mobile', '');
+            $bank_relative = $request->get('bank_relative', 0);
+            $bank_id = $request->get('bank_id', '');
+            $province_id = $request->get('province_id', 0);
+            $city_id = $request->get('city_id', 0);
+            $bank_name = $request->get('bank_name', '');
+            $sub_branch_id = $request->get('sub_branch_id', '');
+
+            $validator = \Validator::make($request->all(), trans('custom_validator.bindBankCard.rules'),
+                trans('custom_validator.bindBankCard.message'));
+            if ($validator->fails()) {
+                return new JsonResponse(['status'=>40, 'message'=> current($validator->errors()->all())]);
+            }
+
+            //验证短信验证码
+            $order_number = json_decode(session('change'), true);
+            $order_number = $order_number ? $order_number['order_number'] : '';
+            $post = Curl::post('utils/message/verificationSms', [
+                'order_number' => $order_number,
+                'code' => $code,
+                'mobile' => $bind_mobile,
+                'type' => 9,
+            ]);
+            if ($post['status'] != 200) return new JsonResponse($post);
+
+            //绑定银行卡
+            if (! $sub_branch_id) $sub_branch_id = $bank_id . $province_id . $city_id;
+
+            $post = Curl::post('/user/bindBankCard', [
+                'realname' => $realname,
+                'idnumber' => $idnumber,
+                'banknumber' => $bind_banknumber,
+                'mobile' => $bind_mobile,
+                'bank_relative'=>$bank_relative,
+                'uid' => $this->getUserId(),
+                'sub_branch_name' => $bank_name,
+                'sub_branch_id' => $sub_branch_id,
+            ]);
+            $aa['ids'] = $post['data']['id'];
+            $aa['banknumbs'] = $post['data']['banknumber'];
+            $aa['realname'] = $post['data']['realname'];
+            $post['data'] = $aa;
+            return new JsonResponse($post);
+        } catch (ApiException $e) {
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * 解绑银行卡
+     * @Post("/unbindBankCard", as="s_user_unbindBankCard")
+     */
+    public function unbindBankCardTmp(Request $request) {
+        try {
+            $uid = $this->getUserId();
+            $session = \Session::get("unbind");
+            $session = json_decode($session, true);
+            if (!isset($session['order_number'])) {
+                return new JsonResponse(['status'=>201,'message'=>'数据错误']);
+            }else{
+
+                $code = $request->get("code",0);
+                $mobile = $request->get("mobile");
+                $mobile = $this->getUserName();
+                if(strlen($code)<=0 || !is_numeric($code)){
+                    return new JsonResponse(['status'=>333,'message'=>'传递参数非法或者缺少参数']);
+                }
+                $post = Curl::post('/utils/message/verificationSms', [
+                    'mobile' => $mobile,
+                    'code' => $code,
+                    'type' => 3,
+                    'order_number' => Arr::get($session, 'order_number', ''),
+                ]);
+                if(!is_null($post['data'])){
+                    $bid = $request->get("bid",-1);
+
+//                    if(intval($bid) && $bid > 0){
+//                        $post = Curl::post('/user/unbindBankCard', [
+//                            'bid' => $bid,
+//                        ]);
+//                        return new JsonResponse($post);
+//                    }
+                    if(intval($bid) && $bid > 0){
+                        $post = Curl::post('/user/unbindBankCardByUid', [
+                            'uid' => $uid,
+                        ]);
+                        return new JsonResponse($post);
+                    }
+                }
+
+            }
+        } catch (ApiException $e) {
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * 切换银行卡
+     * @Post("/changeBankCard", as="s_user_changeBankCard")
+     */
+    public function changeBankCard(Request $request) {
+        try {
+            $uid = $this->getUserId();
+            $session = \Session::get("change");
+            $session = json_decode($session, true);
+            if (!isset($session['order_number'])) {
+
+            }else{
+                $code = $request->get("code",0);
+                if(strlen($code)<=0 || !is_numeric($code)){
+                    return new JsonResponse(['status'=>333,'message'=>'传递参数非法或者缺少参数']);
+                }
+                $mobile = $request->get("mobile");
+                $mobile = $this->getUserName();
+                $post = Curl::post('/utils/message/verificationSms', [
+                    'mobile' => $mobile,
+                    'code' => $code,
+                    'type' => 3,
+                    'order_number' => Arr::get($session, 'order_number', ''),
+                ]);
+                if(!is_null($post['data'])){
+                    $bid = $request->get("bid",-1);
+
+//                    if(intval($bid) && $bid > 0){
+//                        $post = Curl::post('/user/unbindBankCard', [
+//                            'bid' => $bid,
+//                        ]);
+//                        return new JsonResponse($post);
+//                    }
+
+                    if(intval($bid) && $bid > 0){
+                        $post = Curl::post('/user/unbindBankCardByUid', [
+                            'uid' => $uid,
+                        ]);
+                        return new JsonResponse($post);
+                    }
+
+
+                }else{
+//                    var_dump($post);
+
+                }
+
+            }
+        } catch (ApiException $e) {
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+            ]);
+        }
+    }
+    /**
+     * 发送银行卡验证码
+     * @Post("/sendBankSms", as="s_user_sendBankSms")
+     */
+    public function sendBankSms(Request $request) {
+        try {
+            $mobile = $this->getUserName();
+            $type = $request->get("type",-1);
+            if(intval($type) && $type >0){
+                $post = Curl::post('/utils/message/createMsg', [
+                    'mobile' => $mobile,
+                    'type' => $type
+                ]);
+                $data = $post['data'];
+                unset($post['data']);
+                $name = $type == 3 ? 'unbind' : 'change';
+                \Session::put($name, json_encode(["mobile"=>$mobile, "order_number"=>$data['order_number']]));
+                return new JsonResponse($post);
+            }else{
+                return new JsonResponse(['status'=>333,'message'=>'传递参数非法或者缺少参数']);
+            }
+        } catch (ApiException $e) {
+
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+            ]);
+        }catch (\Exception $e){
+            return new JsonResponse([
+                "status"=>477,
+                "message"=>'输入错误',
+            ]);
+        }
+    }
+
+    /**
+     * 修改密码
+     * @Post("/changePassword", as="s_user_changePassword")
+     */
+    public function changePassword(Request $request) {
+        try {
+            $oldpas = $request->get("oldpas",'');
+            $newpas = $request->get("newpas",'');
+            $newpas2 = $request->get("newpas2",'');
+
+            if(strlen($oldpas) <=0 || strlen($newpas) <=0 || strlen($newpas2) <=0){
+                return new JsonResponse([
+                    "status"=>'333',
+                    "message"=>'传递参数非法或者缺少参数',
+                ]);
+            }
+
+            $post = Curl::post('/user/editPassword', [
+                'username' => $this->getUserName(),
+                'oldpasswd' => $oldpas,
+                'passwd' => $newpas,
+                'passconfirm' => $newpas2,
+            ]);
+            return new JsonResponse($post);
+        }catch (ApiException $e) {
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+            ]);
+        }
+        catch (\Exception $e){
+            return new JsonResponse([
+                "status"=>477,
+                "message"=>'输入错误',
+            ]);
+        }
+    }
+
+    /**
+     * 发送申请提现短信
+     * @Post("/sendDrawSms", as="s_sms_sendDrawSms")
+     */
+    public function sendDrawSms(Request $request) {
+
+        try {
+            $mobile = $this->getUserName();
+//            $type = $request->get("type",0);
+            $type = 4;
+            if($type <=0 || !is_numeric($type)){
+                return new JsonResponse([
+                    "status"=>'333',
+                    "message"=>'传递参数非法或者缺少参数',
+                ]);
+            }
+
+            $post = Curl::post('/utils/message/createMsg', [
+                'mobile' => $mobile,
+                'type' => $type
+            ]);
+            $data = $post['data'];
+            unset($post['data']);
+            \Session::put("DrawSms", json_encode(["mobile"=>$mobile, "order_number"=>$data['order_number']]));
+            return new JsonResponse($post);
+        } catch (ApiException $e) {
+
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * 提现申请验证短信
+     * @Post("/validatorDrawSms", as="s_sms_validatorDrawSms")
+     */
+    public function validatorDrawSms(Request $request) {
+        try {
+            $mobile = $this->getUserName();
+            $code = $request->get("code");
+            if($code <=0 || !is_numeric($code)){
+                return new JsonResponse([
+                    "status"=>'333',
+                    "message"=>'传递参数非法或者缺少参数',
+                ]);
+            }
+            $session = \Session::get("DrawSms");
+            $session = json_decode($session, true);
+            $post = Curl::post('/utils/message/verificationSms', [
+                'mobile' => $mobile,
+                'code' => $code,
+                'type' => 4,
+                'order_number' => Arr::get($session, 'order_number', ''),
+            ]);
+
+            $data = $post['data'];
+            unset($post['data']);
+            \Session::put("validatorDrawSms", json_encode(["mobile"=>$mobile, "order_number"=>$data['order_number']]));
+
+            return new JsonResponse($post);
+        } catch (ApiException $e) {
+
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * 申请提现
+     * @Post("/withdrawalApplication", as="s_draw_withdrawalApplication")
+     */
+    public function withdrawalApplicationTmp(Request $request) {
+        try {
+            $account = $request->get("account",0);
+            $bank_id = $request->get("bank_id",0);
+            if($account <=0 || !is_numeric($account) || $bank_id <=0 || !is_numeric($bank_id)){
+                return new JsonResponse([
+                    "status"=>'333',
+                    "message"=>'传递参数非法或者缺少参数',
+                ]);
+            }
+            $session = \Session::get("validatorDrawSms");
+            $session = json_decode($session, true);
+
+
+
+            $post = Curl::post('/user/withdrawalApplication', [
+                'uid' => $this->getUserId(),
+                'bank_id' => $bank_id,
+                'account' => $account,
+                'order_number' => Arr::get($session, 'order_number', ''),
+            ]);
+
+
+            $data = $post['data'];
+            //unset($post['data']);
+            return new JsonResponse($data);
+        } catch (ApiException $e) {
+
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+            ]);
+        }
+    }
+
+
+    /**
+     * 发送实名短信
+     * @Post("/sendAuthSms", as="s_sms_sendAuthSms")
+     */
+    public function sendAuthSms(Request $request) {
+
+        try {
+            $authmobile = $request->get('authmobile');
+            if(!is_null($authmobile)){
+                $hasbindmobile = $this->isUserMobile();
+                if($hasbindmobile['data']){
+                    $mobile = $this->getUserName();
+                }else{
+                    $mobile = $authmobile;
+                }
+            }else{
+                $mobile = $this->getUserName();
+            }
+
+//            $type = $request->get("type",0);
+            $type = 5;
+            if($type <=0 || !is_numeric($type)){
+                return new JsonResponse([
+                    "status"=>'333',
+                    "message"=>'传递参数非法或者缺少参数',
+                ]);
+            }
+            $post = Curl::post('/utils/message/createMsg', [
+                'mobile' => $mobile,
+                'type' => $type
+            ]);
+            $data = $post['data'];
+            unset($post['data']);
+            \Session::put("sendAuth", json_encode(["mobile"=>$mobile, "order_number"=>$data['order_number']]));
+            return new JsonResponse($post);
+        } catch (ApiException $e) {
+
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * 实名验证短信
+     * @Post("/validatorAuthSms", as="s_sms_validatorAuthSms")
+     */
+    public function validatorAuthSms(Request $request) {
+        try {
+            $session = \Session::get("sendAuth");
+            $session = json_decode($session, true);
+
+            //检测是否已经绑定手机号
+            $hasbindmobile = $this->isUserMobile();
+            if($hasbindmobile['data']){
+                $mobile = $this->getUserName();
+            }else{
+                $mobile = Arr::get($session, 'mobile', '');
+
+            }
+
+            $code = $request->get("code");
+            if($code <=0 || !is_numeric($code)){
+                return new JsonResponse([
+                    "status"=>'333',
+                    "message"=>'传递参数非法或者缺少参数',
+                ]);
+            }
+
+            //实名短信验证
+            $post = Curl::post('/utils/message/verificationSms', [
+                'mobile' => $mobile,
+                'code' => $code,
+                'type' => 5,
+                'order_number' => Arr::get($session, 'order_number', ''),
+            ]);
+
+
+            $bindmobile_order_number = '';
+            if(!$hasbindmobile['data']){
+                //绑定手机号验证
+                $mobilePost = Curl::post('/utils/message/verificationSms', [
+                    'mobile' => $mobile,
+                    'code' => $code,
+                    'type' => 11,
+                    'order_number' => Arr::get($session, 'order_number', '').'_11',
+                ]);
+                $bindmobile_order_number = $mobilePost['data']['order_number'];
+            }
+
+
+
+            $data = $post['data'];
+            unset($post['data']);
+            \Session::put("validatorAuthSms", json_encode(["mobile"=>$mobile, "order_number"=>$data['order_number'],'bindmobile_order_number'=>$bindmobile_order_number]));
+
+            return new JsonResponse($post);
+        } catch (ApiException $e) {
+
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * 实名申请验证
+     * @Post("/authVerify", as="s_auth_authVerify")
+     */
+    public function authVerify(Request $request) {
+        try {
+            $idno = $request->get("idno",'');
+            $realname = $request->get("realname",'');
+            if(strlen($idno)<15 || mb_strlen($realname)<2){
+                return new JsonResponse([
+                    "status"=>'333',
+                    "message"=>'传递参数非法或者缺少参数',
+                ]);
+            }
+            $session = \Session::get("validatorAuthSms");
+            $session = json_decode($session, true);
+
+
+            //检测是否已经绑定手机号
+            $hasbindmobile = $this->isUserMobile();
+            if(!$hasbindmobile['data']){
+                $mobile = Arr::get($session, 'mobile', '');
+                //绑定手机号
+                $postbindmobile = Curl::post('/user/bindMobile', [
+                    'uid' => $this->getUserId(),
+                    'mobile' => $mobile,
+                    'orderNumber' => Arr::get($session, 'bindmobile_order_number', ''),
+                ]);
+                if($postbindmobile['data']){
+                    $this->setMobile($mobile);
+                }
+            }else{
+                $mobile = $this->getUserName();
+            }
+
+
+
+            $post = Curl::post('/user/userAuthentication', [
+                'uid' => $this->getUserId(),
+                'mobile' => $mobile,
+                'idno' => $idno,
+                'realname' => $realname,
+                'order_number' => Arr::get($session, 'order_number', ''),
+                'verify_type'=>5
+            ]);
+
+
+            $post = Curl::post('/user/userBindAuthentication', [
+                'id' => $this->getUserId(),
+                'order_number' => $post['data'],
+            ]);
+
+            if($post['data']){
+                return new JsonResponse([
+                    "status" => '200',
+                    "message" => '绑定成功',
+                ]);
+            }
+            return new JsonResponse([
+                "status" => '202',
+                "message" => '绑定失败',
+            ]);
+
+//            $data = $post['data'];
+            //unset($post['data']);
+        } catch (ApiException $e) {
+
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+            ]);
+        }
+    }
+
+
+
+    /**
+     * 获取我的资讯列表数据
+     * @Post("/getMyArticleList", as="s_user_getMyArticleList")
+     */
+    public function getMyArticleList(Request $request) {
+        try {
+
+            $showstatus = $request->get("showstatus",1);
+            $page = $request->get("page",1);
+            $pagesize = $request->get("pagesize",10);
+            $uid = $this->getUserId();
+
+            $post = Curl::post('/article/getMyArticleList',
+                [
+                    'uid' => $uid,
+                    'showstatus'=>$showstatus,
+                    'pagesize'=>$pagesize,
+                    'page'=>$page
+                ]
+            );
+            return new JsonResponse($post);
+        } catch (ApiException $e) {
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * 文章删除
+     * @Post("/delArticle", as="s_user_delArticle")
+     */
+    public function delArticle(Request $request) {
+        try {
+
+            $article_id = $request->get("article_id",0);
+            $uid = $this->getUserId();
+
+            $article = Curl::post('/article/getArticle',['articleid'=>$article_id]);
+
+            if($article['data']['author'] != $uid){
+                return new JsonResponse([
+                    "status"=>301,
+                    "message"=>'不是该用户的文章',
+                ]);
+            }
+            $post = Curl::post('/article/auditArticle',
+                [
+                    'article_id' => $article_id,
+                    'status'=>6,
+                    'admin_id'=>$uid,
+                    'remark'=>'用户删除文章'
+                ]
+            );
+            return new JsonResponse($post);
+        } catch (ApiException $e) {
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * 文章查询
+     * @Post("/getArticle", as="s_user_getArticle")
+     */
+    public function getArticle(Request $request) {
+        try {
+            $article_id = $request->get("article_id",0);
+            $article = Curl::post('/article/getArticle',['articleid'=>$article_id]);
+            $article['data']['content'] = html_entity_decode($article['data']['content']);
+//            var_dump($article['data']['content'],'<br>',);die;
+            return new JsonResponse($article);
+        } catch (ApiException $e) {
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * 获取实名信息
+     * @Post("/getAuthInfo", as="s_user_getAuthInfo")
+     */
+    public function getAuthInfo(Request $request) {
+        try {
+            $post = Curl::post('/user/getAuthInfo', [
+                'uid' => $this->getUserId(),
+            ]);
+
+
+//            $data = $post['data'];
+            //unset($post['data']);
+            return new JsonResponse($post);
+        } catch (ApiException $e) {
+
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * 获取用户头像昵称等信息
+     * @Post("/getUserInfo", as="s_user_getUserInfo")
+     */
+    public function getUserInfo(Request $request) {
+
+        try {
+            $userInfo = [];
+            $userInfo['avatar'] = $this->getUserAvatar();
+            $userInfo['nickname'] = $this->getNickname();
+            $result = [
+                'status' => 200,
+                'data' => $userInfo,
+            ];
+            return new JsonResponse($result);
+        } catch (ApiException $e) {
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * 提交修改用户昵称
+     * @Post("/changeNickname", as="s_user_changeNickname")
+     */
+    public function changeNickname(Request $request) {
+        try {
+            $nickname = $request->get("nickname",'');
+            if(strlen($nickname)>0){
+
+                $post = Curl::post('/user/modifyNickname', [
+                    'uid' => $this->getUserId(),
+                    'nickname' => $nickname
+                ]);
+                if($post['status'] == 200){
+                    //修改昵称
+                    $this->setNickname($nickname);
+//                    $this->setHeadImgurl('../images/zmtdl_avator.jpg');
+                }
+                return new JsonResponse($post);
+            }else{
+                return new JsonResponse(['status'=>333,'message'=>'传递参数非法或者缺少参数']);
+            }
+        } catch (ApiException $e) {
+
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * 提交修改用户头像
+     * @Post("/changeAvatar", as="s_user_changeAvatar")
+     */
+    public function changeAvatar(Request $request) {
+
+        header('Content-type:text/html;charset=utf-8');
+        $avatar = $request->get("avatar",'');
+        if(strlen($avatar)<=0){
+            return new JsonResponse(['status'=>333,'message'=>'传递参数非法或者缺少参数']);
+        }
+
+
+        //匹配出图片的格式
+        if (preg_match('/^(data:\s*image\/(\w+);base64,)/', $avatar, $result)){
+            $type = $result[2];
+
+            $tmp_file = public_path().'/'.'IMGAVATAR'.date('YmdHis').rand(10000,99999).'.'.$type;
+
+            if (file_put_contents($tmp_file, base64_decode(str_replace($result[1], '', $avatar)))){
+                $ossKey =  md5(time().rand().rand());
+                if(OSS::publicUpload(\Config::get('alioss.BucketName'), $ossKey, $tmp_file)){
+                    $publicObjectURL = OSS::getPublicObjectURL(\Config::get('alioss.BucketName'), $ossKey);
+                    @unlink($tmp_file);
+                    try {
+
+                        $post = Curl::post('/user/modifyAvatar', [
+                            'uid' => $this->getUserId(),
+                            'url' => $publicObjectURL
+                        ]);
+                        if($post['status'] == 200){
+                            //修改昵称
+                            $this->setHeadImgurl($publicObjectURL);
+                            $post['newHeadurl'] = $publicObjectURL;
+                        }else{
+
+                        }
+                        return new JsonResponse($post);
+                    } catch (ApiException $e) {
+                        return new JsonResponse([
+                            "status"=>$e->getCode(),
+                            "message"=>$e->getMessage(),
+                        ]);
+                    }
+                }else{
+                    return new JsonResponse(['status'=>335,'message'=>'图片保存异常，请重试']);
+                }
+
+            }else{
+                return new JsonResponse(['status'=>334,'message'=>'图片保存异常，请重试']);
+            }
+
+//            if (file_put_contents($new_file, base64_decode(str_replace($result[1], '', $base64_image_content)))){
+//                echo '新文件保存成功：', $new_file;
+//            }else{
+//                echo '新文件保存失败';
+//            }
+        }
+
+
+
+    }
+
+    /**
+     * 发布文章
+     * @Post("/pulishArticle", as="s_user_pulishArticle")
+     */
+    public function pulishArticle(Request $request) {
+        try {
+
+            $article_id = $request->get("article_id",0);
+            $uid = $this->getUserId();
+
+            $article = Curl::post('/article/getArticle',['articleid'=>$article_id]);
+
+            if($article['data']['author'] != $uid){
+                return new JsonResponse([
+                    "status"=>301,
+                    "message"=>'不是该用户的文章',
+                ]);
+            }
+
+            $post = Curl::post('/article/changeStatus',
+                [
+                    'article_id' => $article_id,
+                    'status'=>3,
+
+                ]
+            );
+            return new JsonResponse($post);
+        } catch (ApiException $e) {
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * 获取用户邮箱信息
+     * @Post("/getEmailStatus", as="s_user_getEmailStatus")
+     */
+    public function getEmailStatus(Request $request) {
+        try {
+            $uid = $this->getUserId();
+            $mobile = $this->getUserMobile();
+            $userInfo = Curl::post('/user/existMail', [
+                'uid' => $uid,
+
+            ]);
+            return new JsonResponse($userInfo);
+        } catch (ApiException $e) {
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * 发送邮件
+     * @Post("/sendEmail", as="s_user_sendEmail")
+     */
+    public function sendEmail(Request $request) {
+        try {
+
+            $email = $request->get("email",'');
+            if(strlen($email) <=0){
+                return new JsonResponse([
+                    "status"=>333,
+                    "message"=>'缺少参数或则参数格式非法',
+                ]);
+            }
+            $mobile = $this->getUserMobile();
+
+            $post = Curl::post('/utils/email/send',
+                [
+                    'to_user' => $email,
+                    'phone'=>$mobile,
+                ]
+            );
+            return new JsonResponse($post);
+        } catch (ApiException $e) {
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+            ]);
+        }
+    }
+
+
+    /**
+     * 发送修改手机号 原手机号短信
+     * @Post("/sendChangeSms", as="s_user_sendChangeSms")
+     */
+    public function sendChangeSms(Request $request) {
+        try {
+//            $mobile = esaDecode($request->get("mobile",''));
+//            clearAES();
+            $mobile = $this->getUserMobile();
+//            if(strlen($mobile)<=0){
+//                return new JsonResponse([
+//                    "status"=>477,
+//                    "message"=>'手机号输入格式错误',
+//                ]);
+//            }
+            $post = Curl::post('/utils/message/createMsg', [
+                'mobile' => $mobile,
+                'type' => 7
+            ]);
+
+            if($post['status']==200){
+                $data = $post['data'];
+                unset($post['data']);
+                \Session::put("changeMobile", json_encode(["mobile"=>$mobile, "order_number"=>$data['order_number']]));
+            }
+            return new JsonResponse($post);
+        } catch (ApiException $e) {
+
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * 原手机号 验证码验证
+     * @Post("/validatorChangeSMS", as="s_user_validatorChangeSMS")
+     */
+    public function validatorChangeSMS(Request $request) {
+        try {
+
+            $code = $request->get("code");
+            if($code <=0 || !is_numeric($code)){
+                return new JsonResponse([
+                    "status"=>'333',
+                    "message"=>'传递参数非法或者缺少参数',
+                ]);
+            }
+            $session = \Session::get("changeMobile");
+            $session = json_decode($session, true);
+
+            $mobile = Arr::get($session, 'mobile', '');
+
+            $post = Curl::post('/utils/message/verificationSms', [
+                'mobile' =>$mobile,
+                'code' => $code,
+                'type' => 7,
+                'order_number' => Arr::get($session, 'order_number', ''),
+            ]);
+            $data = $post['data'];
+            unset($post['data']);
+
+//            var_dump([
+//                'mobile' =>$mobile,
+//                'order_number' => $data['order_number'],
+//            ]);
+            $post = Curl::post('/user/oldMobileVerify', [
+                'mobile' =>$mobile,
+                'orderNumber' => $data['order_number'],
+            ]);
+            $data = $post['data'];
+            unset($post['data']);
+
+            //记录
+            \Session::put("changeMobile", json_encode(["mobile"=>$mobile, "order_number"=>$data['order_number'],'new'=>1]));
+            return new JsonResponse($post);
+        } catch (ApiException $e) {
+
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * 发送修改手机号 新手机号短信
+     * @Post("/sendChangeNewSms", as="s_user_sendChangeNewSms")
+     */
+    public function sendChangeNewSms(Request $request) {
+        try {
+//            $mobile = esaDecode($request->get("mobile",''));
+//            clearAES();
+            $mobile = $request->get("mobile",'');
+//            if(strlen($mobile)<=0){
+//                return new JsonResponse([
+//                    "status"=>477,
+//                    "message"=>'手机号输入格式错误',
+//                ]);
+//            }
+            $post = Curl::post('/utils/message/createMsg', [
+                'mobile' => $mobile,
+                'type' => 8
+            ]);
+
+            if($post['status']==200){
+                $data = $post['data'];
+//                unset($post['data']);
+                $session = \Session::get("changeMobile");
+                $session = json_decode($session, true);
+                if(!isset($session['new']) && $session['new'] != 1){
+                    return redirect(route('s_user_accountInfo'));
+                }
+                $session['order_number'] = $data['order_number'];
+                $session['newmobile'] = $mobile;
+                \Session::put("changeMobile", json_encode($session));
+            }
+            return new JsonResponse($post);
+        } catch (ApiException $e) {
+
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * 新手机号 验证码验证
+     * @Post("/validatorChangeNewSMS", as="s_user_validatorChangeNewSMS")
+     */
+    public function validatorChangeNewSMS(Request $request) {
+        try {
+
+            $code = $request->get("code");
+            if($code <=0 || !is_numeric($code)){
+                return new JsonResponse([
+                    "status"=>'333',
+                    "message"=>'传递参数非法或者缺少参数',
+                ]);
+            }
+            $session = \Session::get("changeMobile");
+            $session = json_decode($session, true);
+
+            if(!isset($session['new']) && $session['new'] != 1){
+                return redirect(route('s_user_accountInfo'));
+            }
+
+            if(!isset($session['newmobile'])){
+                return redirect(route('s_user_accountInfo'));
+            }
+            $mobile = Arr::get($session, 'newmobile', '');
+
+            $post = Curl::post('/utils/message/verificationSms', [
+                'mobile' =>$mobile,
+                'code' => $code,
+                'type' => 8,
+                'order_number' => Arr::get($session, 'order_number', ''),
+            ]);
+
+            $data = $post['data'];
+            unset($post['data']);
+
+            $session['order_number'] = $data['order_number'];
+            //记录
+            \Session::put("changeMobile", json_encode($session));
+
+            return new JsonResponse($post);
+        } catch (ApiException $e) {
+
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * 新手机号修改
+     * @Post("/ChangeNewMobile", as="s_user_ChangeNewMobile")
+     */
+    public function ChangeNewMobileTmp(Request $request) {
+        try {
+
+//
+//            if($code <=0 || !is_numeric($code)){
+//                return new JsonResponse([
+//                    "status"=>'333',
+//                    "message"=>'传递参数非法或者缺少参数',
+//                ]);
+//            }
+            $session = \Session::get("changeMobile");
+            $session = json_decode($session, true);
+
+            if(!isset($session['new']) && $session['new'] != 1){
+                return redirect(route('s_user_accountInfo'));
+            }
+
+            if(!isset($session['newmobile'])){
+                return redirect(route('s_user_accountInfo'));
+            }
+            $newmobile = Arr::get($session, 'newmobile', '');
+            $mobile = Arr::get($session, 'mobile', '');
+            $order_number = Arr::get($session, 'order_number', '');
+
+            $post = Curl::post('/user/changeMobile', [
+                'mobile' =>$mobile,
+                'newmobile' => $newmobile,
+                'orderNumber' => $order_number,
+            ]);
+            if($post['status']==200){
+                $this->setMobile($newmobile);
+                \Session::forget("changeMobile");
+            }
+
+            return new JsonResponse($post);
+        } catch (ApiException $e) {
+
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+            ]);
+        }
+    }
+
+
+    /**
+     * 检查手机号是否已经存在接口 user_info表
+     * @Post("/checkMobileExist", as="s_user_checkMobileExist")
+     */
+    public function checkMobileExistTmp(Request $request) {
+        try {
+
+//            $mobile = esaDecode($request->get("mobile",''));
+            $mobile = $request->get("mobile",0);
+            //clearAES();
+            $post = Curl::post('/user/checkMobileByUserInfo', [
+                'mobile' => $mobile,
+            ]);
+
+            return new JsonResponse($post);
+        } catch (ApiException $e) {
+
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+
+            ]);
+        }
+    }
+
+    /**
+     * 检查手机号是否绑定
+     * @Post("/checkisUserMobile", as="s_user_checkisUserMobile")
+     */
+    public function checkisUserMobileTmp(Request $request) {
+        $post = $this->isUserMobile();
+        return new JsonResponse($post);
+    }
+
+    /**
+     * 查询是否绑定手机号
+     * @return array
+     */
+    private function isUserMobileTmp(){
+        try {
+            $uid = $this->getUserId();
+            $post = Curl::post('/user/isUserMobile', [
+                'uid' => $uid,
+            ]);
+            return $post;
+        } catch (ApiException $e) {
+            return [
+                'data'=>[],
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+
+            ];
+        }
+    }
+
+    /**
+     * 检查密码是否绑定
+     * @Post("/checkisUserPassword", as="s_user_checkisUserPassword")
+     */
+    public function checkisUserPasswordTmp(Request $request) {
+        try {
+            $uid = $this->getUserId();
+            $post = Curl::post('/user/isUserPassword', [
+                'uid' => $uid,
+            ]);
+            return new JsonResponse($post);
+        } catch (ApiException $e) {
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+
+            ]);
+        }
+    }
+
+    /**
+     * 绑定密码
+     * @Post("/bindSetPassword", as="s_user_bindSetPassword")
+     */
+    public function bindSetPasswordTmp(Request $request) {
+        try {
+            $mobile = $this->getUserMobile();
+            $newpasswd = $request->get('newpasswd','');
+            if(strlen($newpasswd)<6){
+                return new JsonResponse([
+                    "status"=>'201',
+                    "message"=>'密码不小于6位',
+                ]);
+            }
+            $post = Curl::post('/user/setPassword', [
+                'mobile' => $mobile,
+                'newpasswd'=>$newpasswd
+            ]);
+            return new JsonResponse($post);
+        } catch (ApiException $e) {
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+
+            ]);
+        }
+    }
+
+
+    /**
+     * 发送绑定手机验证码
+     * @Post("/sendBindMobileSms", as="s_user_sendBindMobileSms")
+     */
+    public function sendBindMobileSmsTmp(Request $request) {
+        try {
+            $mobile = $request->get("mobile",'');
+            $post = Curl::post('/utils/message/createMsg', [
+                'mobile' => $mobile,
+                'type' => 11
+            ]);
+            $data = $post['data'];
+            unset($post['data']);
+            \Session::put("sendBindMobileSms", json_encode(["mobile"=>$mobile, "order_number"=>$data['order_number']]));
+            return new JsonResponse($post);
+        } catch (ApiException $e) {
+
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * 验证验证码
+     * @Post("/validatorBindMobileSms", as="s_user_validatorBindMobileSms")
+     */
+    public function validatorBindMobileSmsTmp(Request $request) {
+        try {
+
+            $code = $request->get("code");
+            $session = \Session::get("sendBindMobileSms");
+            $session = json_decode($session, true);
+            $mobile = Arr::get($session, 'mobile', '');
+            $post = Curl::post('/utils/message/verificationSms', [
+                'mobile' => $mobile,
+                'code' => $code,
+                'type' => 11,
+                'order_number' => Arr::get($session, 'order_number', ''),
+            ]);
+            $data = $post['data'];
+            unset($post['data']);
+            \Session::put("sendBindMobileSms", json_encode(["mobile"=>$mobile, "order_number"=>$data['order_number']]));
+
+            return new JsonResponse($post);
+        } catch (ApiException $e) {
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * 提交绑定手机号
+     * @Post("/bindSetMobile", as="s_user_bindSetMobile")
+     */
+    public function bindSetMobileTmp(Request $request) {
+        try {
+            $session = \Session::get("sendBindMobileSms");
+            $session = json_decode($session, true);
+            $mobile = Arr::get($session, 'mobile', '');
+            //绑定手机号
+            $postbindmobile = Curl::post('/user/bindMobile', [
+                'uid' => $this->getUserId(),
+                'mobile' => $mobile,
+                'orderNumber' => Arr::get($session, 'order_number', ''),
+            ]);
+            if($postbindmobile['data']){
+                $this->setMobile($mobile);
+            }
+            \Session::forget("sendBindMobileSms");
+            return new JsonResponse($postbindmobile);
+        } catch (ApiException $e) {
+            return new JsonResponse([
+                "status"=>$e->getCode(),
+                "message"=>$e->getMessage(),
+
+            ]);
+        }
+    }
 }
