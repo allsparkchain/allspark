@@ -1665,4 +1665,539 @@ class Article
         $data = $pagination->get();
         return $data;
     }
+
+    /**
+     * 后台用户列表页面
+     * @Get("/adminUserLists", as="s_user_adminUserLists")
+     * @Post("/adminUserLists", as="s_user_adminUserLists")
+     */
+    public function adminUserLists(Request $request) {
+
+        if ($request->ajax()) {
+
+            $page = $request->get('page',1);
+            $pageszie = $request->get('pageszie',10);
+            $mobile = $request->get('mobile','');
+
+            $joinRule = DB::table('t_admin_user')
+                ->select('t_admin_user.*','t_admin_group.name')
+                ->leftJoin('t_admin_group_user', 't_admin_group_user.user_id', '=', 't_admin_user.id')
+                ->leftJoin('t_admin_group', 't_admin_group_user.group_id', '=', 't_admin_group.id');
+
+            if(strlen($mobile)>0){
+                $joinRule = $joinRule->where('mobile',$mobile);
+            }
+            $joinRule = $joinRule->orderBy('status','DESC');
+            $joinRule = $joinRule->orderBy('add_time', 'DESC');
+            $joinRule = $joinRule->paginate($pageszie,['*'],'page',$page);
+
+            $return = [
+                'initEcho' => 1,
+                'iTotalRecords' => $joinRule->total(),
+                'iTotalDisplayRecords' => $joinRule->total(),
+                'aaData' => $joinRule->items(),
+            ];
+            return new JsonResponse($return);
+        }
+        return view("Users.admimUserList");
+    }
+
+    /**
+     * 删除后台用户提交
+     * @Post("/delAdminUser", as="s_user_delAdminUser")
+     */
+    public function delAdminUser(Request $request) {
+        if ($request->ajax()) {
+            $this->validate($request, [
+                'id' => 'required',
+            ]);
+            $rs = DB::table('t_admin_user')->where('id',$request->get('id'))->delete();
+            if($rs){
+                return new JsonResponse(['msg'=>'ok','status'=>200]);
+            }else{
+                return new JsonResponse(['msg'=>'删除失败','status'=>201]);
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 添加后台用户页面
+     * @Get("/adminUserAdd", as="s_user_adminUserAdd")
+     */
+    public function adminUserAdd(Request $request) {
+        return view("Users.admimUserAdd");
+    }
+
+    /**
+     * 添加后台用户提交
+     * @Post("/adminUserAddPost", as="s_user_adminUserAddPost")
+     */
+    public function adminUserAddPost(Request $request) {
+
+        $this->validate($request, [
+            'mobile' => 'required|unique:t_admin_user',
+            'password' => 'required'
+        ]);
+        $now = getCurrentTime();
+        $rs = DB::table('t_admin_user')->insert([
+            'mobile'=> $request->get('mobile'),
+            'password' => Hash::make($request->get('password')),
+            'register_time' =>$now,
+            'add_time' => $now
+        ]);
+
+        if($rs){
+            return redirect(route('s_user_adminUserLists'))->with('addsuccess', 'success');
+        }else{
+            return back()->withErrors($rs['message']);
+        }
+    }
+    /**
+     * 修改后台用户密码提交
+     * @Post("/adminUserChangePwd", as="s_user_adminUserChangePwd")
+     */
+    public function adminUserChangePwd(Request $request) {
+        $this->validate($request, [
+            'id' => 'required',
+            'password'=> 'required'
+        ]);
+        $now = getCurrentTime();
+        $rs = DB::table('t_admin_user')->where('id',$request->get('id'))->update([
+            'password' => Hash::make($request->get('password')),
+        ]);
+
+        if($rs){
+            return redirect(route('s_user_adminUserLists'))->with('addsuccess', 'success');
+        }else{
+            return back()->withErrors($rs['message']);
+        }
+    }
+    /**
+     * 编辑后台用户页面
+     * @Get("/adminUserEdit", as="s_user_adminUserEdit")
+     */
+    public function adminUserEdit(Request $request) {
+        $user = \Auth::user();
+
+        $adminself = $request->get('admin',false);
+        if($adminself && $user->id == 1){
+            $id = 1;
+        }else{
+            $id = $request->get('uid',-1);
+        }
+//        $res = DB::table('t_admin_user')->select('*')->where('id',$id)->first();
+        return view("Users.admimUserEdit")->with('id',$id);
+    }
+
+    /**
+     * 添加后台用户提交
+     * @Post("/adminUserEditPost", as="s_user_adminUserEditPost")
+     */
+    public function adminUserEditPost(Request $request) {
+        $this->validate($request, [
+            'password_confirmation' => 'required',
+            'password' => 'required|confirmed',
+            'id'=> 'required'
+        ]);
+//        $res = DB::table('t_admin_user')->select('*')->where('id',$request->get('id'))->first();
+//        if(!Hash::check($request->get('oldpassword'),$res->password)){
+//            return back()->withInput()->withErrors(['原密码输入错误']);
+//        }
+
+        $rs = DB::table('t_admin_user')
+            ->where('id',$request->get('id'))
+            ->update([
+                'password' => Hash::make($request->get('password')),
+            ]);
+        if($rs){
+            return redirect(route('s_user_adminUserLists'))->with('addsuccess', 'success');
+        }else{
+            return back()->withInput()->withErrors(['密码更新失败']);
+        }
+    }
+
+    /**
+     * 组权限添加页面
+     * @Get("/adminGroupAdd", as="s_user_adminGroupAdd")
+     */
+    public function adminGroupAdd(Request $request) {
+        $powerList = DB::table('t_admin_power')->select('*')->where('status',1)->get();
+        return view("Powrer.powerUserGroupAdd")->with('powerList',$powerList);
+    }
+
+    /**
+     * 组权限添加提交
+     * @Post("/adminGroupAddPost", as="s_user_adminGroupAddPost")
+     */
+    public function adminGroupAddPost(Request $request) {
+        $this->validate($request, [
+            'name' => 'required|unique:t_admin_group',
+            'powerlist' => 'required',
+
+        ]);
+        $now = getCurrentTime();
+        $name = $request->get('name');
+        $powerlist = $request->get('powerlist');
+
+        DB::beginTransaction();
+        $groupAddId = DB::table('t_admin_group')->insertGetId([
+            'name'=> $name,
+            'add_time' =>$now
+        ]);
+
+        foreach ($powerlist as $power) {
+            $rs = DB::table('t_admin_group_power')->insertGetId([
+                'power_id'=> $power,
+                'group_id' => $groupAddId,
+                'add_time' =>$now
+            ]);
+            if($rs<=0){
+                DB::rollBack();
+                return back()->withInput()->withErrors(['权限组创建失败']);
+            }
+        }
+
+        DB::commit();
+
+        if($rs){
+            return redirect(route('s_user_adminGroupLists'))->with('addsuccess', 'success');
+        }else{
+            return back()->withInput()->withErrors(['权限组创建失败']);
+        }
+    }
+
+    /**
+     * 权限用户所属组编辑页面
+     * @Get("/adminUserGroupEdit", as="s_user_adminUserGroupEdit")
+     */
+    public function adminUserGroupEdit(Request $request) {
+        $uid = $request->get('uid',-1);
+        if(!$uid){
+            return redirect(route('s_user_adminUserLists'));
+        }
+        $groupList = DB::table('t_admin_group')->select('*')->where('status',1)->get();
+        $groupuser = DB::table('t_admin_group_user')->where('status',1)->where('user_id',$uid)->first();
+        $gid = -1;
+        if($groupuser){
+            $gid = $groupuser->group_id;
+        }
+        return view("Powrer.powerUserGroupEdit")->with('groupList',$groupList)->with('uid',$uid)->with('gid',$gid);
+    }
+
+    /**
+     * 权限用户所属组编辑提交
+     * @Post("/adminUserGroupEditPost", as="s_user_adminUserGroupEditPost")
+     */
+    public function adminUserGroupEditPost(Request $request) {
+        $this->validate($request, [
+            'group' => 'required',
+            'uid' => 'required'
+        ]);
+        $group = $request->get('group');
+        if($group){
+            $now = getCurrentTime();
+            $rs = DB::table('t_admin_group_user')->where('user_id',$request->get('uid'))->delete();
+            $rs = DB::table('t_admin_group_user')->insertGetId([
+                'user_id'=> $request->get('uid'),
+                'group_id' => $group,
+                'add_time' =>$now
+            ]);
+        }else{
+            //del
+            $rs = DB::table('t_admin_group_user')->where('user_id',$request->get('uid'))->delete();
+        }
+        if($rs){
+            return redirect(route('s_user_adminUserLists'))->with('addsuccess', 'success');
+        }
+        return false;
+    }
+
+    /**
+     * 权限组列表页面
+     * @Get("/adminGroupLists", as="s_user_adminGroupLists")
+     * @Post("/adminGroupLists", as="s_user_adminGroupLists")
+     */
+    public function adminGroupLists(Request $request) {
+        if ($request->ajax()) {
+
+            $page = $request->get('page',1);
+            $pageszie = $request->get('pageszie',10);
+            $name = $request->get('name','');
+
+            $joinRule = DB::table('t_admin_group');
+
+            if(strlen($name)>0){
+                $joinRule = $joinRule->where('name','like','%'.$name.'%');
+            }
+            $joinRule = $joinRule->orderBy('status','DESC');
+            $joinRule = $joinRule->orderBy('add_time', 'DESC');
+            $joinRule = $joinRule->paginate($pageszie,['*'],'page',$page);
+
+            $return = [
+                'initEcho' => 1,
+                'iTotalRecords' => $joinRule->total(),
+                'iTotalDisplayRecords' => $joinRule->total(),
+                'aaData' => $joinRule->items(),
+            ];
+            return new JsonResponse($return);
+        }
+        return view("Powrer.powerGroupList");
+    }
+
+    /**
+     * 删除权限组提交
+     * @Post("/delAdminGroupPost", as="s_user_delAdminGroupPost")
+     */
+    public function delAdminGroupPost(Request $request) {
+        if ($request->ajax()) {
+            $this->validate($request, [
+                'id' => 'required',
+            ]);
+            DB::beginTransaction();
+            $rs = DB::table('t_admin_group')->where('id',$request->get('id'))->delete();
+            $rs = DB::table('t_admin_group_user')->where('group_id',$request->get('id'))->delete();
+            $rs = DB::table('t_admin_group_power')->where('group_id',$request->get('id'))->delete();
+            DB::commit();
+            if($rs){
+                return new JsonResponse(['msg'=>'ok','status'=>200]);
+            }else{
+                return new JsonResponse(['msg'=>'删除失败','status'=>201]);
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 组编辑页面
+     * @Get("/adminGroupEdit", as="s_user_adminGroupEdit")
+     */
+    public function adminGroupEdit(Request $request) {
+        $gid = $request->get('gid',-1);
+        if(!$gid){
+            return redirect(route('s_user_adminUserLists'));
+        }
+        $choosedPowerList = DB::table('t_admin_group_power')->where('status',1)->where('group_id',$gid)->pluck('power_id')->Toarray();
+        $res = DB::table('t_admin_group')->where('status',1)->where('id',$gid)->first();
+
+        $powerList = DB::table('t_admin_power')->select('*')->where('status',1)->get();
+        return view("Powrer.powerGroupEdit")->with('res',$res)->with('choosedPowerList',$choosedPowerList)
+            ->with('gid',$gid)->with('powerList',$powerList);
+    }
+    /**
+     * 组编辑页面提交
+     * @Post("/adminGroupEditPost", as="s_user_adminGroupEditPost")
+     */
+    public function adminGroupEditPost(Request $request) {
+        $this->validate($request, [
+            'id' => 'required',
+            'name' => 'required',
+            'powerlist' => 'required',
+        ]);
+        $id = $request->get('id');
+        $name = $request->get('name');
+        $powerList = $request->get('powerlist');
+
+        DB::beginTransaction();
+        $now = getCurrentTime();
+
+        $rs = DB::table('t_admin_group')
+            ->where('id',$id)
+            ->update([
+                'name' => $name,
+            ]);
+//        if($rs<=0){
+//            DB::rollBack();
+//            return back()->withInput()->withErrors(['名称更新失败']);
+//        }
+        $res = DB::table('t_admin_group_power')->where('group_id',$id)->delete();
+
+        foreach ($powerList as $power) {
+            $rs = DB::table('t_admin_group_power')->insertGetId([
+                'power_id'=> $power,
+                'group_id' => $id,
+                'add_time' =>$now
+            ]);
+            if($rs<=0){
+                DB::rollBack();
+                return back()->withInput()->withErrors(['权限更新失败']);
+            }
+        }
+
+        DB::commit();
+
+        return redirect(route('s_user_adminGroupLists'))->with('addsuccess', 'success');
+    }
+
+    /**
+     * 绑定关联
+     * @Get("/innerBindRel", as="s_user_innerBindRel")
+     * @Post("/innerBindRel", as="s_user_innerBindRel")
+     */
+    public function innerBindRel(Request $request) {
+
+        if ($request->ajax()) {
+
+            $invitedUid = $request->get('invitedUid',0);
+            $inviteUid = $request->get('inviteUid',0);
+            if(!intval($invitedUid) || $invitedUid<=0 || !intval($inviteUid) || $inviteUid<=0){
+                return new JsonResponse(['status' => 404, 'msg' => '参数传递非法']);
+            }
+            try {
+                $post = Curl::post('/user/bindInviteUser', ['uid' => $invitedUid, 'invite_uid' => $inviteUid]);
+            }catch (\Exception $e) {
+                return new JsonResponse(['status' => 403, 'msg' => '请求失败请重试']);
+            }
+            return new JsonResponse($post);
+        }
+        return view("Users.innerBindRel");
+    }
+
+    /**
+     * 昵称搜索用户
+     * @Post("/nickSearchUser", as="s_user_nickSearchUser")
+     *
+     */
+    public function nickSearchUser(Request $request){
+
+        $nickname = $request->get('nickname','');
+        if(strlen($nickname)>0){
+            $arr = [
+                'nickname' =>   $nickname,
+            ];
+            $userList = Curl::post('/user/nickSearchUser', $arr);
+            foreach ($userList['data']['data'] as $key =>$val){
+                $userList['data']['data'][$key]['id'] = $val['uid'];
+            }
+            return new JsonResponse($userList);
+        }
+    }
+
+    /**
+     * 内部员工信息
+     * @Get("/innerUserList", as="s_user_innerUserList")
+     * @Post("/innerUserList", as="s_user_innerUserList")
+     */
+    public function innerUserList(Request $request) {
+
+        if ($request->ajax()) {
+            $data = Curl::post('/user/employeeList',
+                [
+                    'page' => $request->get('page', 1),
+                    'pagesize'=>$request->get('pagesize', 10),
+                    'name'=>$request->get('name', 0),
+                ]
+            );
+            $return = [
+                'initEcho' => 1,
+                'iTotalRecords' => $data['data']['count'],
+                'iTotalDisplayRecords' => $data['data']['count'],
+                'aaData' => $data['data']['data'],
+            ];
+            return new JsonResponse($return);
+        }
+        return view("Users.innerUserList");
+    }
+
+    /**
+     * 添加内部员工信息
+     * @Get("/employeeAdd", as="s_user_employeeAdd")
+     */
+    public function employeeAdd(Request $request) {
+        return view("Users.employeeAdd");
+    }
+
+    /**
+     * @Post("/addEmployee", as="s_user_addEmployee")
+     */
+    public function addEmployee(Request $request) {
+
+        $this->validate($request, [
+            'name' => 'required',
+        ]);
+        $name = $request->get('name');
+        $mobile = $request->get('mobile','');
+        $uid = $request->get('uid','');
+
+        if(is_null($uid)){
+            $uid = 0;
+        }
+        if(is_null($mobile)){
+            $mobile = '';
+        }
+//            dd([
+//                'name' => $name,
+//                'mobile'=>$mobile,
+//                'uid'=>$uid
+//            ]);
+        $data = Curl::post('/user/addEmployee',
+            [
+                'name' => $name,
+                'mobile'=>$mobile,
+                'uid'=>$uid
+            ]
+        );
+        if($data['status'] != 200){
+            return back()->withErrors($data['message']);
+        }else{
+
+            return redirect(route('s_user_innerUserList'))->with('addsuccess', 'success');
+        }
+
+    }
+
+    /**
+     * 被邀请用户列表
+     * @Get("/employeeInviteUserList", as="s_user_employeeInviteUserList")
+     * @Post("/employeeInviteUserList", as="s_user_employeeInviteUserList")
+     */
+    public function innerInviteList(Request $request) {
+        if ($request->ajax()) {
+            $data = Curl::post('/user/employeeInviteUserList',
+                [
+                    'page' => $request->get('page', 1),
+                    'pagesize'=>$request->get('pagesize', 10),
+                    'uid'=>$request->get('uid', -1),
+                ]
+            );
+//            dd($data);
+            $return = [
+                'initEcho' => 1,
+                'iTotalRecords' => $data['data']['count'],
+                'iTotalDisplayRecords' => $data['data']['count'],
+                'aaData' => $data['data']['data'],
+            ];
+            return new JsonResponse($return);
+        }
+
+        return view("Users.employeeInviteUserList")->with('uid',$request->get('uid', 0));
+    }
+
+    /**
+     * 被邀请用户列表
+     * @Get("/cooperateList", as="s_user_cooperateList")
+     * @Post("/cooperateList", as="s_user_cooperateList")
+     */
+    public function cooperateList(Request $request) {
+        if ($request->ajax()) {
+            $data = Curl::post('/user/getbusinessCooperate',
+                [
+                    'page' => $request->get('page', 1),
+                    'pagesize'=>$request->get('pagesize', 10),
+                    'name'=>$request->get('name', ''),
+                ]
+            );
+//            dd($data);
+            $return = [
+                'initEcho' => 1,
+                'iTotalRecords' => $data['data']['count'],
+                'iTotalDisplayRecords' => $data['data']['count'],
+                'aaData' => $data['data']['data'],
+            ];
+            return new JsonResponse($return);
+        }
+
+        return view("Users.cooperate");
+    }
+
 }
