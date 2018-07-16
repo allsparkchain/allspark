@@ -23,6 +23,7 @@ class IndexController extends Controller
     public function index() {
         $user = \Auth::getUser()?\Auth::getUser()->getAuthIdentifier(): '';
         return view("index")->with('user',$user);
+           
     }
 
     /**
@@ -48,6 +49,18 @@ class IndexController extends Controller
         $return = getA( $request->get('A'), 'B');
 
         return new JsonResponse(['B'=>$return]);
+    }
+
+    /**
+     * Show the Index Page
+     * @Get("/getkeys2", as="index_keys2")
+     */
+    public function keys2(Request $request)
+    {
+        $mobile = esaDecode($request->get('mobile'));
+        clearAES();
+        // echo  $mobile;exit;
+        return new JsonResponse(['B'=>$mobile]);
     }
 
     /**
@@ -258,7 +271,7 @@ class IndexController extends Controller
     }
 
     /**
-     * @Get("/recommendRegistration/{inviteCode}", as="s_recommend_registration")
+     * @Get("/r/{inviteCode}", as="s_recommend_registration")
      */
     public function recommendRegistration($inviteCode) {
         \Session::put("recommendCode", $inviteCode);

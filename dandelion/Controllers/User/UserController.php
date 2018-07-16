@@ -18,31 +18,39 @@ use Illuminate\Support\Facades\DB;
  */
 class UserController extends Controller
 {
-
+ 
     /**
      * 账户总览页面
      * @Get("/accountInfo", as="s_user_accountInfo")
      */
     public function accountInfo(Request $request) {
+
+        $jzstate = \Session:: get('pc_jzstate');
+        \Session::forget("pc_jzstate");
+        \Cache::forget("wxdl_".$jzstate);
+
         $uid = $this->getUserId();
         $cacheKey = $this->getCacheKye('accountInfo');
-        if (! $cacheData = \Cache::get($cacheKey)) {
+        if (! $cacheData = \Cache::get($cacheKey)) {//
             $not_settle_money = 0.00;
             $canWithDraw = 0.00;
             $today_nums = 0;
             $all_commission_profit = 0.00;
             try{
                 $user_accountInfo = Curl::post('/user/userAccountPage',['uid'=>$uid]);
+                $user_accountInfo = $user_accountInfo['data'];
             }catch (ApiException $e){
                 $user_accountInfo = [];
 
 
             }
-            if(count($user_accountInfo) > 0 && $user_accountInfo['data']){
+            if(count($user_accountInfo) > 0 && isset($user_accountInfo['data']) && count($user_accountInfo['data'])>0){
                 $canWithDraw = $user_accountInfo['data']['available_amount'];
                 $not_settle_money = $user_accountInfo['data']['unsettled_amount'];
                 $today_nums = $user_accountInfo['data']['today_nums'];
                 $all_commission_profit = $user_accountInfo['data']['all_commission_profit'];
+
+                $user_accountInfo = $user_accountInfo['data'];
             }
 
             try{
@@ -51,11 +59,23 @@ class UserController extends Controller
                 $records = [];
 
             }
+
+
             if(isset($records['data']) && $records['data']['count'] >0){
-                foreach ($records['data']['data'] as $key => $value){
-                    $records['data']['data'][$key]['new_time'] = date('Y-m-d',$records['data']['data'][$key]['add_time']);
+                $info = [];
+                $j = 0;
+                for ($i=6;$i>=0;$i--){
+                    $info[$j]['new_time'] = date('m-d',strtotime('-'.$i.' day'));
+                    $info[$j]['account'] = 0;
+                    foreach ($records['data']['data'] as $key => $value){
+                        if( date('m-d',($value['add_time'])) ==  $info[$j]['new_time']){
+                            $info[$j]['account'] = $value['account'];
+                        }
+                    }
+                    $j++;
                 }
-                $list = json_encode($records['data']['data']);
+
+                $list = json_encode($info);
             }else{
                 //生成空的数据
                 $now = time();
@@ -72,7 +92,7 @@ class UserController extends Controller
                 $today_nums,
                 $all_commission_profit,
                 $list
-            ]), 20);
+            ]), $this->getCacheMinute());
         }else{
             $cacheData = json_decode($cacheData, true);
             $canWithDraw = $cacheData[0];
@@ -91,7 +111,7 @@ class UserController extends Controller
             ->with('mobile',$mobile)
             ->with('canWithDraw',$canWithDraw)
             ->with('not_settle_money',$not_settle_money)
-            ->with('user_accountInfo',$user_accountInfo['data'])
+            ->with('user_accountInfo',$user_accountInfo)
             ->with('today_nums',$today_nums)
             ->with('list',$list)
             ->with('all_commission_profit',$all_commission_profit);
@@ -134,7 +154,7 @@ class UserController extends Controller
             \Cache::put($cacheKey, json_encode([
                 $pageList,
                 $flowingList
-            ]), 20);
+            ]), $this->getCacheMinute());
         }else{
             $cacheData = json_decode($cacheData, true);
             $pageList = $cacheData[0];
@@ -145,11 +165,20 @@ class UserController extends Controller
         //获取银行卡
         try {
             $bank = Curl::post('/user/getBindBankCard', ['uid' => $uid]);
-            $bid = $bank['data']['id'];
-            $banknumber = $bank['data']['banknumber'];
+            if(isset($bank['data']['id'])){
+                $bid = $bank['data']['id'];
+                $banknumber = $bank['data']['banknumber'];
+                $realname = $bank['data']['realname'];
+            }else{
+                $bid = 0;
+                $banknumber = 0;
+                $realname = '';
+            }
+
         } catch (ApiException $e) {
             $bid = 0;
             $banknumber = 0;
+            $realname = '';
         }
         $account = (int)($account*100)/100;
         return view("User.newAccountWithdraw")
@@ -159,6 +188,7 @@ class UserController extends Controller
         ->with('account', $account)
         ->with('bid', $bid)
         ->with('banknumber', $banknumber)
+        ->with('realname',$realname)
         ->with('flowingList', $flowingList);
     }
 
@@ -255,9 +285,9 @@ class UserController extends Controller
     public function accountCommissionSettlement(Request $request) {
         $uid = $this->getUserId();
         $user_accountInfo = [];
-        $not_settle_money = 0.00;
-        $unsettled_amount_last_month = 0.00;
-        $unsettled_amount_month = 0.00;
+        $not_settle_money = 0;
+        $unsettled_amount_last_month = 0;
+        $unsettled_amount_month = 0;
 
         $cacheKey = $this->getCacheKye('accountCommissionSettlement');
         if (! $cacheData = \Cache::get($cacheKey)) {
@@ -268,33 +298,31 @@ class UserController extends Controller
             }
             if(count($user_accountInfo) > 0 && $user_accountInfo['data']){
                 //未结算佣金总额，表字段
-                $not_settle_money = number_format($user_accountInfo['data']['unsettled_amount'],2);
+                $not_settle_money = isset($user_accountInfo['data']['unsettled_amount'])?($user_accountInfo['data']['unsettled_amount']):0;
                 //上个月未结算佣金总额 查询
-                $unsettled_amount_last_month = number_format($user_accountInfo['data']['last_month_total'],2);
+                $unsettled_amount_last_month = isset($user_accountInfo['data']['last_month_total'])?($user_accountInfo['data']['last_month_total']):0;
                 //本月未结算佣金总额，表字段
-                $unsettled_amount_month = number_format($user_accountInfo['data']['unsettled_amount_month'],2);
+                $unsettled_amount_month = isset($user_accountInfo['data']['unsettled_amount_month'])?($user_accountInfo['data']['unsettled_amount_month']):0;
             }
 
             \Cache::put($cacheKey, json_encode([
                 $not_settle_money,
                 $unsettled_amount_last_month,
                 $unsettled_amount_month
-            ]), 20);
+            ]), $this->getCacheMinute());
         }else{
             $cacheData = json_decode($cacheData, true);
-            $not_settle_money = $cacheData[0];
-            $unsettled_amount_last_month = $cacheData[1];
-            $unsettled_amount_month = $cacheData[2];
+            $not_settle_money = isset($cacheData[0])?$cacheData[0]:0;
+            $unsettled_amount_last_month = isset($cacheData[1])?$cacheData[1]:0;
+            $unsettled_amount_month = isset($cacheData[2])?$cacheData[2]:0;
         }
-
-
 
         $mobile = substr_replace($this->getUserName(),'****',3,4);
         return view("User.newAccountCommissionSettlement")
             ->with('mobile',$mobile)
-            ->with('unsettled_amount_month',$unsettled_amount_month)
-            ->with('unsettled_amount_last_month',$unsettled_amount_last_month)
-            ->with('not_settle_money',$not_settle_money);
+            ->with('unsettled_amount_month',$unsettled_amount_month?$unsettled_amount_month:0)
+            ->with('unsettled_amount_last_month',$unsettled_amount_last_month?$unsettled_amount_last_month:0)
+            ->with('not_settle_money',$not_settle_money?$not_settle_money:0);
     }
 
     /**
@@ -388,7 +416,7 @@ class UserController extends Controller
                 $pageList,
                 $pageList2,
                 $flowList2
-            ]), 20);
+            ]), $this->getCacheMinute());
 
         }else{
             $cacheData = json_decode($cacheData, true);
@@ -474,7 +502,7 @@ class UserController extends Controller
                 $pageList,
                 $spreadList,
 
-            ]), 20);
+            ]), $this->getCacheMinute());
         }else{
             $cacheData = json_decode($cacheData, true);
             $pageList = $cacheData[0];
@@ -518,7 +546,7 @@ class UserController extends Controller
                 $pageList,
                 $spreadList,
 
-            ]), 20);
+            ]), $this->getCacheMinute());
         }else{
             $cacheData = json_decode($cacheData, true);
             $pageList = $cacheData[0];
@@ -544,10 +572,28 @@ class UserController extends Controller
         if(!intval($current_page)){
             $current_page = 1;
         }
+        $t = $request->get('t',1);
+        if(!intval($t)){
+            $t = 1;
+        }
         $cacheKey = $this->getCacheKye('accountFreiendInvite',$request);
         if (! $cacheData = \Cache::get($cacheKey)) {
             try {
-                $userList = Curl::post('/user/getInviteFriendByUId', ['uid' => $uid,'pagesize'=>10,'page'=>$current_page]);
+                $now = time();
+                if($t==2){
+                    $starttime = strtotime('-30 day',$now);
+                    $endtime = 0;
+                }elseif($t==3){
+                    $starttime = strtotime('-7 day',$now);
+                    $endtime = 0;
+                }elseif($t==4){
+                    $starttime = strtotime(date('Y-m-d',$now));
+                    $endtime = 0;
+                }else{
+                    $starttime = 0;
+                    $endtime = 0;
+                }
+                $userList = Curl::post('/user/getInviteFriendByUId', ['uid' => $uid,'endtime'=>$endtime,'starttime'=>$starttime,'pagesize'=>10,'page'=>$current_page]);
                 $total_people_num = $userList['data']['count'];
                 $total_settlement = 0;
             } catch (ApiException $e) {
@@ -571,7 +617,7 @@ class UserController extends Controller
                 $pageList,
                 $userList
 
-            ]), 20);
+            ]), $this->getCacheMinute());
         }else{
             $cacheData = json_decode($cacheData, true);
             $total_people_num = $cacheData[0];
@@ -587,9 +633,219 @@ class UserController extends Controller
             ->with('total_people_num',$total_people_num)
             ->with('current_page',$current_page)
             ->with('userList',$userList)
+            ->with('t',$t)
             ->with("code", $this->getRecommendCode());
     }
 
+    /**
+     * 好友邀请用户数据查询页面
+     * @Get("/FreiendInviteDetail", as="s_user_FreiendInviteDetail")
+     */
+    public function FreiendInviteDetail(Request $request) {
+        $uid = $this->getUserId();
+        $current_page = $request->get('page',1);
+
+        $channel_name = $request->get('name','');
+
+
+        if($channel_name){
+            \Session::put('channel_name',$channel_name);
+        }else{
+            $channel_name =  \Session::get('channel_name');
+        }
+
+        if(!intval($current_page)){
+            $current_page = 1;
+        }
+        $t = $request->get('t',1);
+        if(!intval($t)){
+            $t = 1;
+        }
+        $ituid = $request->get("ituid",0);
+        \Session::put('ituid',$ituid);
+        if($ituid <= 0 || !intval($ituid)){
+            return redirect(route('s_user_accountFreiendInvite'));
+        }
+        $sort = $request->get('sort',0);
+        if(!intval($t)){
+            $sort = 0;
+        }
+
+//testfor
+//        $uid = 2;
+//        $ituid = 18;
+//
+
+        $pageList = false;
+        $content_count = 0;
+        $avg_buy = 0;
+        $sum_order = 0;
+        $sum_commisssion = 0;
+        $list = [];
+        try {
+            $now = time();
+            if($t==2){
+                $starttime = strtotime('-30 day',$now);
+                $endtime = 0;
+            }elseif($t==3){
+                $starttime = strtotime('-7 day',$now);
+                $endtime = 0;
+            }elseif($t==4){
+                $starttime = strtotime(date('Y-m-d',$now));
+                $endtime = 0;
+            }else{
+                $starttime = 0;
+                $endtime = 0;
+            }
+            $order = '';
+            if($sort == 1){
+                $order = '{"buytransfer":"asc"}';//购买转化
+            }elseif ($sort == 2){
+                $order = '{"buytransfer":"desc"}';
+            }elseif ($sort == 3){
+                $order = '{"account":"asc"}';//交易额 account
+            }elseif ($sort == 4){
+                $order = '{"account":"desc"}';
+            }elseif ($sort == 5){
+                $order = '{"commission_account":"asc"}';//佣金额 commission_account
+            }elseif ($sort == 6){
+                $order = '{"commission_account":"desc"}';
+            }
+            $infolist = Curl::post('/user/getFriendByInviteId', ['uid' => $uid,'order'=>$order,'inviteUid'=>$ituid,'endtime'=>$endtime,'starttime'=>$starttime,'pagesize'=>10,'page'=>$current_page]);
+            if($infolist['status'] == 200){
+                $list = $infolist['data']['data'];
+                $content_count = $infolist['data']['count'];
+                $avg_buy = number_format($infolist['data']['avgtransfer']*100,2);//
+                $sum_order = number_format($infolist['data']['sumAccount'],2);
+                $sum_commisssion = number_format($infolist['data']['sumCommission'],2);
+                $pageList = getPageList($infolist['data']['page_count'], $current_page,true);
+
+            }
+        } catch (ApiException $e) {
+            $content_count = 0;
+            $avg_buy = 0;
+            $sum_order = 0;
+            $sum_commisssion = 0;
+        }
+        return view("User.FreiendInviteDetail")
+            ->with('content_count',$content_count)
+            ->with('avg_buy',$avg_buy)
+            ->with('sum_order',$sum_order)
+            ->with('sum_commisssion', $sum_commisssion)
+            ->with('list',$list)
+            ->with('current_page',$current_page)
+            ->with('t',$t)
+            ->with('channel_name',$channel_name)
+            ->with('sort',$sort)
+            ->with('ituid',$ituid)
+            ->with('pageList', $pageList);
+    }
+
+    /**
+     * 好友邀请用户文章数据查询页面
+     * @Get("/FreiendInviteArticleDetail", as="s_user_FreiendInviteArticleDetail")
+     */
+    public function FreiendInviteArticleDetail(Request $request) {
+        $current_page = $request->get('page',1);
+        if(!intval($current_page)){
+            $current_page = 1;
+        }
+        $t = $request->get('t',1);
+        if(!intval($t)){
+            $t = 1;
+        }
+        $sort = $request->get('sort',0);
+        if(!intval($t)){
+            $sort = 0;
+        }
+        $spread_id = $request->get("sp",0);
+        if($spread_id <= 0 || !intval($spread_id)){
+            return redirect(route('s_user_accountFreiendInvite'));
+        }
+
+        $ituid = $this->getUserId();
+
+//testfor
+//        $spread_id = 7;
+//        $ituid = 30;//接口未使用
+//
+
+        $pageList = false;
+        $nums = 0;
+        $sum_order = 0;
+        $sum_commisssion = 0;
+        $list = [];
+        try {
+            $now = time();
+            if($t==2){
+                $starttime = strtotime('-30 day',$now);
+                $endtime = 0;
+            }elseif($t==3){
+                $starttime = strtotime('-7 day',$now);
+                $endtime = 0;
+            }elseif($t==4){
+                $starttime = strtotime(date('Y-m-d',$now));
+                $endtime = 0;
+            }else{
+                $starttime = 0;
+                $endtime = 0;
+            }
+            $order = '';
+            if($sort == 1){
+                $order = '{"number":"asc"}';//购买转化
+            }elseif ($sort == 2){
+                $order = '{"number":"desc"}';
+            }elseif ($sort == 3){
+                $order = '{"account":"asc"}';//交易额 account
+            }elseif ($sort == 4){
+                $order = '{"account":"desc"}';
+            }elseif ($sort == 5){
+                $order = '{"commission_account":"asc"}';//佣金额 commission_account
+            }elseif ($sort == 6){
+                $order = '{"commission_account":"desc"}';
+            }
+            $infolist = Curl::post('/user/getFriendSpreadById', ['spreadId' => $spread_id,'order'=>$order,'inviteUid'=>$ituid,'endtime'=>$endtime,'starttime'=>$starttime,'pagesize'=>10,'page'=>$current_page]);
+            if($infolist['status'] == 200){
+                $list = $infolist['data']['data'];
+                $nums = $infolist['data']['count'];
+                $sum_order = number_format($infolist['data']['sumAccount'],2);
+                $sum_commisssion = number_format($infolist['data']['sumCommission'],2);
+                $pageList = getPageList($infolist['data']['page_count'], $current_page,true);
+
+            }
+        } catch (ApiException $e) {
+            $nums = 0;
+            $sum_order = 0;
+            $sum_commisssion = 0;
+        }
+
+        $article_name = $request->get('channel_name','');
+
+         if($article_name){
+             \Session::put('article_name',$article_name);
+         }else{
+             $article_name =  \Session::get('article_name');
+         }
+
+        $channel_name =  \Session::get('channel_name');
+        $ituid =  \Session::get('ituid');
+
+        return view("User.FreiendInviteArticleDetail")
+            ->with('nums',$nums)
+            ->with('sum_order',$sum_order)
+            ->with('sum_commisssion',$sum_commisssion)
+            ->with('list',$list)
+            ->with('current_page',$current_page)
+            ->with('t',$t)
+            ->with('sort',$sort)
+            ->with('sp',$spread_id)
+            ->with('pageList', $pageList)
+            ->with('channel_name', $channel_name)
+            ->with('article_name', $article_name)
+            ->with('ituid', $ituid);
+
+
+    }
 
     /**
      * 账户设置页面
@@ -600,16 +856,26 @@ class UserController extends Controller
         //获取银行卡
         try {
             $bank = Curl::post('/user/getBindBankCard', ['uid' => $this->getUserId()]);
-            $bid = $bank['data']['id'];
-            $banknumber = $bank['data']['banknumber'];
+            if(isset($bank['data']['id'])){
+                $bid = $bank['data']['id'];
+                $banknumber = $bank['data']['banknumber'];
+                $realname = $bank['data']['realname'];
+            }else{
+                $bid = 0;
+                $banknumber = 0;
+                $realname = '';
+            }
         } catch (ApiException $e) {
             $bid = 0;
             $banknumber = 0;
+            $realname = '';
         }
         $judge = $request->get("judge",0);
         return view("User.newAccountSetting")
             ->with('judge',$judge)
             ->with('bid',$bid)
+            ->with('mobile',$this->getUserName())
+            ->with('realname',$realname)
             ->with('banknumber',$banknumber);
     }
 
@@ -658,6 +924,7 @@ class UserController extends Controller
             ]);
             $aa['ids'] = $post['data']['id'];
             $aa['banknumbs'] = $post['data']['banknumber'];
+            $aa['realname'] = $post['data']['realname'];
             $post['data'] = $aa;
             return new JsonResponse($post);
         } catch (ApiException $e) {
@@ -800,7 +1067,9 @@ class UserController extends Controller
                 $data = $post['data'];
                 if($post['status']==200){
                     $post['data']['url'] = config('params.wx_host').'User/productDetail?spreadid='.$post['data']['id'] .'&nid='.$post['data']['order_no'];
+                    //$post['data']['url'] = file_get_contents('http://suo.im/api.php?url='.urlencode($post['data']['url']));
                 }
+
 //               var_dump($data);die;
                 return new JsonResponse($post);
             }
@@ -832,6 +1101,10 @@ class UserController extends Controller
 
     private function getRecommendCode() {
         return \Auth::getUser()->getRecommendCode();
+    }
+
+    private function getCacheMinute(){
+        return config('params.cache_minute');
     }
 
 }

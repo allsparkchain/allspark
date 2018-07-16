@@ -31,30 +31,34 @@ class LoginController extends BaseLoginController
         $request = app('request');
         $url = $request->get('url','');
 
-        $jzstate = \Session::get('pc_jzstate');
-        if(!$jzstate){
-            $code = Curl::post('/weixin/createCode');
-            $jzstate  = ($code['data']);
-            \Session::put("pc_jzstate", $jzstate);
-        }
+
+        $code = Curl::post('/weixin/createCode');
+        $jzstate  = ($code['data']);
+        \Session::put("pc_jzstate", $jzstate);
+        \Cache::put("wxdl_".$jzstate, $jzstate,30);
+
+        $wxHost = config('params.wx_host');
+
         $token = time().rand(10000, 90000);
         $key = "weChatAjax" . \Session::getId();
         \Cache::forget($key);
         \Cache::add($key, $token, 60);
-        return view("newLogin")->with('url',$url)->with('pc_jzstate',$jzstate);
+        return view("newLogin")->with('url',$url)->with('pc_jzstate',$jzstate)->with('wxHost',$wxHost);
     }
 
     /**
      * @Get("/logout", as="s_logout")
      */
     public function logout(Request $request) {
-        \Auth::logout();
         \Session::forget('wxUserInfo');
+        $request->session()->flush();
+        \Auth::logout();
 
-        $changepwd = $request->get('changepwd',-1);
+
+        /*$changepwd = $request->get('changepwd',-1);
         if($changepwd){
-            return redirect('/User/accountInfo');
-        }
+            return redirect('/login');
+        }*/
         return redirect(route('s_index_index'));
 //        return view("login");
 
