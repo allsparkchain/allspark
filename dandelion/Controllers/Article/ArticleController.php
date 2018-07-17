@@ -15,7 +15,6 @@ use Illuminate\Http\Request;
  */
 class ArticleController extends Controller
 {
-
     /**
      * @Get("/lists", as="s_article_lists")
      */
@@ -25,7 +24,6 @@ class ArticleController extends Controller
         if(!intval($current_page)){
             $current_page = 1;
         }
-
         if (! $cacheData = \Cache::get($key)) {
             try {
                 $articlecategorylist = Curl::post('/article/getArticleCategoryList', ['status' => 1]);
@@ -57,8 +55,8 @@ class ArticleController extends Controller
 
             //上周排行
             try {
-                $lastweekrank = Curl::post('/article/getArticleRank');
-//            $lastweekrank = Curl::post('/article/getArticleRank',['lastweek'=>1]);
+//                $lastweekrank = Curl::post('/article/getArticleRank');
+            $lastweekrank = Curl::post('/article/getArticleRank',['lastweek'=>1]);
                 $lastweekrank = $lastweekrank['data'];
 
             } catch (ApiException $e) {
@@ -82,7 +80,7 @@ class ArticleController extends Controller
                 $pageList,
                 $category_id,
                 $articlecategorylist
-            ]), 20);
+            ]), $this->getCacheMinute());
         } else {
             $cacheData = json_decode($cacheData, true);
             $lastweekrank = $cacheData[0];
@@ -112,11 +110,21 @@ class ArticleController extends Controller
      */
     public function listdetail(Request $request) {
         $id = $request->get('id',-1);
+        $openPlatform = \Wechat::openPlatform('default');
+        $openUrl = $openPlatform->getPreAuthorizationUrl('http://beta.pugongying.link/auth/weixin/callback?id='.$id); // 传入回调URI即可
+
+
         if(!$id || is_null($id) || !intval($id)){
             return redirect(route('s_article_lists'));
         }
-        $article = Curl::post('/article/getArticle',['articleid'=>$id]);
+        $article = Curl::post('/article/getArticle',['articleid'=>$id,'status'=>1]);
         if(is_null($article['data'])){
+
+                    $status = 404;
+            if (view()->exists("errors.{$status}")){
+                return response()->view("errors.{$status}", [], $status);
+            }
+
             return redirect(route('s_article_lists'));
         }
         $user = \Auth::getUser()?\Auth::getUser()->getAuthIdentifier(): '';
@@ -157,34 +165,93 @@ class ArticleController extends Controller
 
         }
 
-        $jzstate = \Session:: get('pc_jzstate');
-        if(!$jzstate){
-            $code = Curl::post('/weixin/createCode');
-            $jzstate  = ($code['data']);
-            \Session::put("pc_jzstate", $jzstate);
-        }
-        
-        if( $user){
 
+        $code = Curl::post('/weixin/createCode');
+        $jzstate  = ($code['data']);
+        \Session::put("pc_jzstate", $jzstate);
+        \Cache::put("wxdl_".$jzstate, $jzstate,30);
+
+        
+
+        $qRcode = 2;
+        if(\Auth::getUser()){
+            $uid = $this->getUserId();
             try {
-                $post = Curl::post('/user/createSpreadQRcode', [
+                $post = Curl::post('/user/selectSpreadQRcode', [
                     'aprs' => $article['data']['article_product_relateId'],
-                    'spreadUid' => $user
+                    'spreadUid' => $uid,
                 ]);
-                $url = config('params.wx_host') . 'Article/articleInfo?spreadid=' . $post['data']['id'] .'&nid='.$post['data']['order_no'];
+                $qRcode = $post['data'];
             } catch (ApiException $e) {
-                $url = config('params.wx_host') . 'Article/articleInfo?article_id=$id';
+                $qRcode = 2;
+            }
+
+        }
+
+        if( $user){
+            if($qRcode==2){
+                $url = config('params.wx_host') . 'Article/articleInfo?article_id='.$id;
+            }else {
+                try {
+                    $post = Curl::post('/user/createSpreadQRcode', [
+                        'aprs' => $article['data']['article_product_relateId'],
+                        'spreadUid' => $user
+                    ]);
+                    $url = config('params.wx_host') . 'Article/articleInfo?spreadid=' . $post['data']['id'] . '&nid=' . $post['data']['order_no'];
+                } catch (ApiException $e) {
+                    $url = config('params.wx_host') . 'Article/articleInfo?article_id='.$id;
+                }
             }
 
         }else{
-            $url = config('params.wx_host') . 'Article/articleInfo?article_id=$id';
+            $url = config('params.wx_host') . 'Article/articleInfo?article_id='.$id;
         }
 
+        $token = time().rand(10000, 90000);
+        $key = "weChatAjax" . \Session::getId();
+        \Cache::forget($key);
+        \Cache::add($key, $token, 60);
+
+        $wxHost = config('params.wx_host');
 
         return view("Article.newListdetail")
             ->with('lastweekhotrank',$lastweekhotrank)
             ->with('article',$article['data'])
-            ->with('user', $user)->with('pc_jzstate', $jzstate)->with('url', $url);
+            ->with('openUrl', $openUrl )
+            ->with('user', $user)->with('pc_jzstate', $jzstate)->with('url', $url)->with('qRcode',$qRcode)->with('wxHost',$wxHost);
     }
 
+    /**
+     * @Get("/imgLoad", as="s_article_imgLoad")
+     */
+    public function imgLoad(Request $request)
+    {
+        $img_path = $request->get('img_path');
+        $wigth = $request->get('wigth');
+        $height = $request->get('height');
+
+        $img_path = \Crypt::decrypt($img_path);
+        $filename = public_path().$img_path;
+        if (file_exists($filename."_170_170")) {
+            $filename = $filename . "_170_170";
+        } else {
+            if (image_center_crop($filename, 170, 170, $filename . "_170_170")) {
+                $filename = $filename . "_170_170";
+            }
+        }
+        $img = \Image::make($filename)->resize($wigth, $height);
+
+       return $img->response('jpg');
+    }
+
+
+
+    private function getUserId() {
+        return \Auth::getUser()->getAuthIdentifier();
+
+    }
+
+    private function getCacheMinute(){
+        return config('params.cache_minute');
+    }
 }

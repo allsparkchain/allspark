@@ -22,6 +22,7 @@ class RegisterController extends \App\Http\Controllers\Auth\RegisterController
      */
     public function showRegistrationForm()
     {
+
         $wxUserInfo = \Session::get('wxUserInfo');
         $code = \Session::get('wxUserInfo', null);
         $wxUserInfo = $wxUserInfo?json_decode($wxUserInfo,true):'';
@@ -30,8 +31,40 @@ class RegisterController extends \App\Http\Controllers\Auth\RegisterController
             $code='';
         }
 
+        if(!$wxUserInfo || !$code){
+           // return redirect('/qrRegister');
+        }
+
         return view("newRegister")->with('code', $code)->with('wxUserInfo', $wxUserInfo);
     }
+
+    /**
+     * @Get("/qrRegister", as="s_qrRegister")
+     */
+    public function qrRegister()
+    {
+        if(\Auth::user()){
+            return redirect(route('s_user_accountInfo'));
+        }
+        $request = app('request');
+
+
+        $code = Curl::post('/weixin/createCode');
+        $jzstate  = ($code['data']);
+        \Session::put("pc_jzstate", $jzstate);
+        \Cache::put("wxdl_".$jzstate, $jzstate,30);
+
+        $token = time().rand(10000, 90000);
+        $key = "weChatAjax" . \Session::getId();
+        \Cache::forget($key);
+        \Cache::add($key, $token, 60);
+
+        $wxHost = config('params.wx_host');
+
+        return view("qrRegister")->with('pc_jzstate',$jzstate)->with('wxHost',$wxHost);
+
+    }
+
     /**
      * @post("/auth/register", as="s_register")
      */
@@ -79,10 +112,12 @@ class RegisterController extends \App\Http\Controllers\Auth\RegisterController
             //绑定openId
             $code = \Session::pull('pc_reg_code', '');
             if($code){
-                Curl::post('/weixin/bindOpenId', [
+                $openUser = Curl::post('/weixin/bindOpenId', [
                     'uid' => $post['data']['id'],
                     'code' => $code
                 ]);
+                $post['data']['nickname'] = $openUser['data']['nickname'];
+                $post['data']['headimgurl'] = $openUser['data']['headimgurl'];
             }
 
 
