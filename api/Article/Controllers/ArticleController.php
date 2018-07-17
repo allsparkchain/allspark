@@ -2017,4 +2017,821 @@ class ArticleController
         }
     }
 
+    /**
+     * 文章添加随机 阅读数
+     * @route POST /articleViewNumRandom
+     * @return array
+     */
+    public function articleViewNumRandom() {
+        try {
+            $data = $this->article->articleViewNumRandom();
+            return $this->respone(Defines::HTTP_OK, Defines::SUCCESS, $data);
+        } catch (\Exception $e) {
+            return $this->respone($e->getCode(), $e->getMessage());
+        }
+    }
+    /**
+     * 商品列表
+     *
+     * @route POST /list
+     *
+     * @param int $page {@v min:1}
+     * @param int $pagesize {@v min:1|max:100}
+     * @param string $name
+     * @param string $product_name
+     * @param string $order
+     * @param int $status {@v min:1}
+     * @param int $adminlist
+     * @param int $cate_id
+     * @return array
+     */
+    public function list($page = 1, $pagesize = 10, $name='', $product_name='',  $order = '', $status = -1, $adminlist = -1, $cate_id = 0) {
+
+        try {
+            $where = [];
+            if($adminlist == 1){
+                $where['a.author'] = 1;
+            }
+
+            if(strlen($name)>0){
+                $where = ['a.name'=>["like"=>'%'.$name.'%']];
+            }
+            if(strlen($product_name)>0){
+                $where = ['t_product.product_name'=>["like"=>'%'.$product_name.'%']];
+            }
+            if(strlen($order)>0){
+                $order = json_decode($order, true);
+            }
+            if($status>0){
+                $where['a.status'] = $status;
+            }else{
+                $where['a.status'] = ['<>'=>6];
+            }
+            if ($cate_id > 0) {
+                $where['ac.category_id'] = $cate_id;//$cate_id
+            }
+            $data = $this->article->getArticleList($page, $pagesize, $where, $order,$adminlist);
+            return $this->respone(Defines::HTTP_OK, Defines::SUCCESS, $data);
+        } catch (\Exception $e) {
+            return $this->respone($e->getCode(), $e->getMessage());
+            //
+        }
+    }
+
+
+    /**
+     * 创作内容列表
+     *
+     * @route POST /creationList
+     *
+     * @param int $page {@v min:1}
+     * @param int $pagesize {@v min:1|max:100}
+     * @param string $name
+     * @param string $product_name
+     * @param string $order
+     * @param int $status
+     * @param int $adminlist
+     * @param string $cate_id
+     * @return array
+     */
+    public function creationList($page = 1, $pagesize = 10, $name='', $product_name='', $order = '', $status = -1, $adminlist = -1, $cate_id = '') {
+
+        try {
+            $where = ['t_article.author'=>['<>'=>1]];
+            if(strlen($name)>0){
+                $where = ['t_article.name'=>["like"=>'%'.$name.'%']];
+            }
+            if(strlen($product_name)>0){
+                $where = ['t_product.product_name'=>["like"=>'%'.$product_name.'%']];
+            }
+            if($status>0){
+                $where['t_article.status'] = $status;
+            }else{
+                $where['t_article.status'] = ['not in'=>[5,6]];
+            }
+            if(strlen($order)>0){
+                $order = json_decode($order, true);
+            }
+            if ($cate_id > 0) {
+                $where['ac.category_id'] = $cate_id;//$cate_id
+            }
+            $data = $this->article->getCreationList($page, $pagesize, $where, $order,$adminlist);
+            return $this->respone(Defines::HTTP_OK, Defines::SUCCESS, $data);
+        } catch (\Exception $e) {
+            return $this->respone($e->getCode(), $e->getMessage());
+            //
+        }
+    }
+
+    /**
+     * 内容审核
+     *
+     * @route POST /auditArticle
+     *
+     * @param int $article_id {@v min:1}
+     * @param int $status
+     * @param int $admin_id
+     * @param int $article_category_id
+     * @param string $remark
+     * @return array
+     */
+    public function auditArticle($article_id, $status, $admin_id, $article_category_id=0, $remark='') {
+
+        try {
+            $data = $this->article->auditArticle($article_id, $status, $admin_id, $article_category_id, $remark);
+            return $this->respone(Defines::HTTP_OK, Defines::SUCCESS, $data);
+        } catch (\Exception $e) {
+            return $this->respone($e->getCode(), $e->getMessage());
+            //
+        }
+    }
+
+    /**
+     * 文章审核详情
+     *
+     * @route POST /articleLook
+     *
+     * @param int $article_id {@v min:1}
+     * @return array
+     */
+    public function articleLook($article_id) {
+
+        try {
+            $data = $this->article->articleLook($article_id);
+            return $this->respone(Defines::HTTP_OK, Defines::SUCCESS, $data);
+        } catch (\Exception $e) {
+            return $this->respone($e->getCode(), $e->getMessage());
+            //
+        }
+    }
+
+    /**
+     * 文章排行列表
+     *
+     * @route POST /getArticleRank
+     * @param int $lastweek {@v min:1}
+     * @param string $order
+     * @return array
+     */
+    public function getArticleRank($lastweek = -1, $order = '') {
+        try {
+            if(strlen($order)>0){
+                $order = json_decode($order,true);
+            }
+            $data = $this->article->getArticleRank($lastweek,$order);
+            return $this->respone(Defines::HTTP_OK, Defines::SUCCESS, $data);
+        } catch (\Exception $e) {
+            return $this->respone($e->getCode(), $e->getMessage());
+        }
+    }
+
+    /**
+     * 热点文章排行列表
+     *
+     * @route POST /getArticleHotRank
+     * @param int $lastweek {@v min:1}
+     * @param string $order
+     * @return array
+     */
+    public function getArticleHotRank($lastweek = -1 ,$order = '') {
+        try {
+            if(strlen($order)>0){
+                $order = json_decode($order,true);
+
+            }
+            $data = $this->article->getArticleHotRank($lastweek,$order);
+            return $this->respone(Defines::HTTP_OK, Defines::SUCCESS, $data);
+        } catch (\Exception $e) {
+            return $this->respone($e->getCode(), $e->getMessage());
+        }
+    }
+    /**
+     * 商品关联产品分成列表
+     *
+     * @route POST /getArticleWithProductList
+     *
+     * @param int $page {@v min:1}
+     * @param int $pagesize {@v min:1|max:100}
+     * @param string $name
+     * @param int $region_id {@v min:1}
+     * @param string $order
+     * @param string $wheres
+     * @return array
+     */
+    public function getArticleWithProductList($page = 1, $pagesize = 10, $name='', $region_id = 0, $order = '', $wheres = '') {
+
+        try {
+            $where = [];
+            if(strlen($name)>0){
+                $where = ['name'=>["like"=>'%'.$name.'%']];
+            }
+            if(strlen($wheres)>0){
+                $wheres = json_decode($wheres,true);
+                $where = array_merge($where, $wheres);
+            }
+
+            if(strlen($order)>0){
+                $order = json_decode($order,true);
+            }
+            $data = $this->article->getArticleWithProductList($page, $pagesize, $region_id, $where, $order);
+            return $this->respone(Defines::HTTP_OK, Defines::SUCCESS, $data);
+        } catch (\Exception $e) {
+            return $this->respone($e->getCode(), $e->getMessage());
+        }
+    }
+
+    /**
+     * 文章状态更新
+     *
+     * @route POST /changeStatus
+     * @param int $article_id {@v min:1}
+     * @param int $status {@v min:1|max:20}
+     * @return array
+     */
+    public function changeStatus($article_id, $status) {
+        try {
+            $data = $this->article->changeStatus($article_id, $status);
+            return $this->respone(Defines::HTTP_OK, Defines::SUCCESS, $data);
+        } catch (\Exception $e) {
+            return $this->respone($e->getCode(), $e->getMessage());
+        }
+    }
+
+    /**
+     * 文章排序更新
+     *
+     * @route POST /changeSort
+     * @param int $article_id {@v min:1}
+     * @param int $sort {@v min:0|max:9}
+     * @return array
+     */
+    public function changeSort($article_id, $sort) {
+        try {
+            $this->article->changeSort($article_id, $sort);
+            return $this->respone(Defines::HTTP_OK, Defines::SUCCESS, true);
+        } catch (\Exception $e) {
+            return $this->respone($e->getCode(), $e->getMessage());
+        }
+    }
+
+    /**
+     * 文章添加
+     * @route POST /add
+     * @param ArticleEntity $entity {@bind request.request}
+     * @return array
+     */
+    public function add(ArticleEntity $entity) {
+        try{
+
+            return $this->mutex->getMutex('addArticle')->synchronized(function() use($entity){
+                //查询
+                $checkExist = $this->article->getArticleList(1, 1,
+                    [
+                        'name'=>$entity->getName(),
+                        'a.add_time'=>['>='=>getCurrentTime() - $this->container->get("addduplicatetime")]
+                    ]);
+                if($checkExist && $checkExist['count']>0){
+                    throw $this->exception([
+                        'code'=>ErrorConst::DUPLICATE_INSERT,
+                        'text'=>"文章重复参数为".json_encode($entity->toArray())
+                    ]);
+                }
+                $lastId = $this->article->add($entity);
+                return $this->respone(Defines::HTTP_OK, Defines::SUCCESS, $lastId);
+            });
+        } catch (\Exception $e) {
+            return $this->respone($e->getCode(), $e->getMessage());
+        }
+    }
+
+    /**
+     * 文章详情
+     * @route POST /getArticle
+     * @param int $articleid {@v min:1}
+     * @param int $choiceMethod {@v min:1}
+     * @param string $status
+     * @return array
+     */
+    public function getArticle($articleid, $choiceMethod = -1, $status = -1) {
+        try {
+            $data = $this->article->getArticle($articleid,$choiceMethod,$status);
+            return $this->respone(Defines::HTTP_OK, Defines::SUCCESS, $data);
+        } catch (\Exception $e) {
+            return $this->respone($e->getCode(), $e->getMessage());
+        }
+    }
+
+    /**
+     * 文章编辑提交
+     * @route POST /editArticle
+     * @param ArticleEntity $entity {@bind request.request}
+     * @return array
+     */
+    public function editArticle(ArticleEntity $entity) {
+        try{
+            return $this->mutex->getMutex('editArticle'.$entity->getId())->synchronized(function() use ($entity){
+                $lastId = $this->article->editArticle($entity);
+                return $this->respone(Defines::HTTP_OK, Defines::SUCCESS, $lastId);
+            });
+        }catch(\Exception $e){
+            return $this->respone($e->getCode(), $e->getMessage());
+        }
+    }
+
+    /**
+     * 文章添加分类关联
+     * @route POST /addArticleCategory
+     * @param $articleID
+     * @param $categoryID
+     * @return array
+     */
+    public function addArticleCategory($articleID, $categoryID) {
+        try{
+            return $this->mutex->getMutex('editArticle'.$articleID)->synchronized(function() use ($articleID, $categoryID){
+                $this->article->addArticleCategory($articleID, $categoryID);
+                return $this->respone(Defines::HTTP_OK, Defines::SUCCESS);
+            });
+        }catch(\Exception $e){
+            return $this->respone($e->getCode(), $e->getMessage());
+        }
+    }
+
+    /**
+     * 生成预览二维码code
+     * @route POST /addArticlePreview
+     * @param $articleID
+     * @param $vtime
+     * @return array
+     */
+    public function addArticlePreview($articleID, $vtime) {
+        try{
+            return $this->mutex->getMutex('preview'.$articleID)->synchronized(function() use ($articleID, $vtime){
+                $arr =  $this->article->addArticlePreview($articleID, $vtime);
+                return $this->respone(Defines::HTTP_OK, Defines::SUCCESS,$arr);
+            });
+        }catch(\Exception $e){
+            return $this->respone($e->getCode(), $e->getMessage());
+        }
+    }
+
+    /**
+     * 生成预览二维码code
+     * @route POST /getArticlePreview
+     * @param $code
+     * @return array
+     */
+    public function getArticlePreview($code) {
+        try{
+            return $this->mutex->getMutex('preview'.$code)->synchronized(function() use ($code){
+                $arr =  $this->article->getArticlePreview($code);
+                return $this->respone(Defines::HTTP_OK, Defines::SUCCESS,$arr);
+            });
+        }catch(\Exception $e){
+            return $this->respone($e->getCode(), $e->getMessage());
+        }
+    }
+
+    /////
+    /**
+     * 文章分类列表
+     * @route POST /getArticleCategoryList
+     * @param string $category_name
+     * @param int $page {@v min:1}
+     * @param int $pagesize {@v min:1|max:100}
+     *
+     * @return array
+     */
+    public function getArticleCategoryList($category_name = '', $page = 1, $pagesize = 10) {
+        try {
+            $where = [];
+            if(strlen($category_name) > 0){
+                $where['category_name'] = ["like"=>'%'.$category_name.'%'];
+
+            }
+            $data = $this->article->getArticleCategoryList($page, $pagesize,$where);
+            return $this->respone(Defines::HTTP_OK, Defines::SUCCESS, $data);
+        } catch (\Exception $e) {
+            return $this->respone($e->getCode(), $e->getMessage());
+        }
+    }
+
+    /**
+     * 文章分类态更新
+     * @route POST /categoryChangeStatus
+     * @param int $cid {@v min:1}
+     * @param int $status {@v min:1|max:20}
+     * @return array
+     */
+    public function categoryChangeStatus($cid, $status) {
+        try {
+            $data = $this->article->categoryChangeStatus($cid, $status);
+            return $this->respone(Defines::HTTP_OK, Defines::SUCCESS, $data);
+        } catch (\Exception $e) {
+            return $this->respone($e->getCode(), $e->getMessage());
+        }
+    }
+
+    /**
+     *获取分类详情
+     * @route POST /categoryAdd
+     * @param ArticleCategoryEntity $articleCategoryEntity {@bind request.request}
+     * @return array
+     */
+    public function categoryAdd(ArticleCategoryEntity $articleCategoryEntity) {
+        try {
+            $data = $this->article->categoryAdd($articleCategoryEntity);
+            return $this->respone(Defines::HTTP_OK, Defines::SUCCESS, $data);
+        } catch (\Exception $e) {
+            return $this->respone($e->getCode(), $e->getMessage());
+        }
+    }
+
+    /**
+     * 获取分类详情
+     * @route POST /getCategory
+     * @param int $id {@v min:1}
+     * @return array
+     */
+    public function getCategory($id) {
+        try {
+            $data = $this->article->getCategory($id);
+            return $this->respone(Defines::HTTP_OK, Defines::SUCCESS, $data);
+        } catch (\Exception $e) {
+            return $this->respone($e->getCode(), $e->getMessage());
+        }
+    }
+
+    /**
+     * 分类更新
+     * @route POST /editCategory
+     * @param ArticleCategoryEntity  $articleCategoryEntity {@bind request.request}
+     * @return array
+     */
+    public function editCategory(ArticleCategoryEntity $articleCategoryEntity) {
+        try {
+            $data = $this->article->editCategory($articleCategoryEntity);
+            return $this->respone(Defines::HTTP_OK, Defines::SUCCESS, []);
+        } catch (\Exception $e) {
+            return $this->respone($e->getCode(), $e->getMessage());
+        }
+    }
+
+///
+
+    /**
+     * 图文新增
+     * @route POST /imgTitleAdd
+     * @param ImgTitleEntity $imgTitleEntity {@bind request.request}
+     * @return array
+     */
+    public function imgTitleAdd(ImgTitleEntity $imgTitleEntity) {
+        try {
+            $data = $this->article->imgTitleAdd($imgTitleEntity);
+            return $this->respone(Defines::HTTP_OK, Defines::SUCCESS, $data);
+        } catch (\Exception $e) {
+            return $this->respone($e->getCode(), $e->getMessage());
+        }
+    }
+
+    /**
+     * 图文列表
+     * @route POST /imgTitleList
+     * @param int $page {@v min:1}
+     * @param int $pagesize {@v min:1|max:100}
+     * @param string $img_title
+     * @param string $img_type
+     * @return array
+     */
+    public function imgTitleList($page = 1, $pagesize = 10, $img_title = '', $img_type = '') {
+        try {
+            $where = [];
+
+            if(strlen($img_title)>0){
+//                $where[] = ['img_title'=>["like"=>'%'.$img_title.'%']];
+                $where['img_title'] =["like"=>'%'.$img_title.'%'];
+            }
+            if(strlen($img_type)>0){
+                $where['img_type'] = $img_type;
+            }
+            $where['status'] = 1;
+            $data = $this->article->imgTitleList($page, $pagesize,$where);
+            return $this->respone(Defines::HTTP_OK, Defines::SUCCESS, $data);
+        } catch (\Exception $e) {
+            return $this->respone($e->getCode(), $e->getMessage());
+        }
+    }
+
+    /**
+     * 图文删除
+     * @route POST /deleteImgTitle
+     * @param int $id {@v min:1}
+     * @return array
+     */
+    public function deleteImgTitle($id) {
+        try {
+
+            $data = $this->article->deleteImgTitle($id);
+            return $this->respone(Defines::HTTP_OK, Defines::SUCCESS, $data);
+        } catch (\Exception $e) {
+            return $this->respone($e->getCode(), $e->getMessage());
+        }
+    }
+
+    /**
+     * 获取图文详情
+     * @route POST /getImgTitle
+     * @param int $id {@v min:1}
+     * @return array
+     */
+    public function getImgTitle($id) {
+        try {
+            $data = $this->article->getImgTitle($id);
+            return $this->respone(Defines::HTTP_OK, Defines::SUCCESS, $data);
+        } catch (\Exception $e) {
+            return $this->respone($e->getCode(), $e->getMessage());
+        }
+    }
+
+    /**
+     * 图文编辑提交
+     * @route POST /editImgTitle
+     * @param ImgTitleEntity  $entity {@bind request.request}
+     * @return array
+     */
+    public function editImgTitle(ImgTitleEntity $entity) {
+        try{
+            return $this->mutex->getMutex('editImgTitle'.$entity->getId())->synchronized(function() use ($entity){
+                $this->article->editImgTitle($entity);
+                return $this->respone(Defines::HTTP_OK, Defines::SUCCESS);
+            });
+        }catch(\Exception $e){
+            return $this->respone($e->getCode(), $e->getMessage());
+        }
+    }
+
+
+    /**
+     * 微信文章详情页
+     * @route POST /getArticleDetailForWx
+     * @param int $article_id {@v min:1}
+     * @return array
+     */
+    public function getArticleDetailForWx($article_id) {
+        try {
+            $rs = $this->article->getArticleDetailForWx($article_id);
+            return $this->respone(Defines::HTTP_OK, Defines::SUCCESS,$rs);
+
+        } catch (\Exception $e) {
+            return $this->respone($e->getCode(), $e->getMessage());
+        }
+    }
+
+    /**
+     * 微信文章详情页
+     * @route POST /getArticleDetailForWx2
+     * @param int $article_id {@v min:1}
+     * @return array
+     */
+    public function getArticleDetailForWx2($article_id) {
+        try {
+            $rs = $this->article->getArticleDetailForWx2($article_id);
+            return $this->respone(Defines::HTTP_OK, Defines::SUCCESS,$rs);
+
+        } catch (\Exception $e) {
+            return $this->respone($e->getCode(), $e->getMessage());
+        }
+    }
+
+    /** 微信文章 购买  详情页 预览
+     * @route POST /getPrviewArticleDetailForWx2
+     * @param int $product_id {@v min:1}
+     * @return array
+     */
+    public function getPrviewArticleDetailForWx2($product_id) {
+        try {
+            $rs = $this->article->getPrviewArticleDetailForWx2($product_id);
+            return $this->respone(Defines::HTTP_OK, Defines::SUCCESS,$rs);
+
+        } catch (\Exception $e) {
+            return $this->respone($e->getCode(), $e->getMessage());
+        }
+    }
+
+
+    /**
+     * 文章图片列表删除
+     *
+     * @route POST /getArticleImgDel
+     *
+     * @param int $id {@v min:1}
+     * @return array
+     */
+    public function getArticleImgDel($id){
+        try {
+            $data = $this->article->getArticleImgDel($id);
+            return $this->respone(Defines::HTTP_OK, Defines::SUCCESS, $data);
+
+        } catch (\Exception $e) {
+            return $this->respone($e->getCode(), $e->getMessage());
+        }
+
+    }
+
+    /**
+     * 文章图片列表删除
+     *
+     * @route POST /getArticleImgOrder
+     *
+     * @param int $id {@v min:1}
+     * @param int $orderby
+     * @return array
+     */
+    public function getArticleImgOrder($id, $orderby){
+        try {
+            $data = $this->article->getArticleImgOrder($id, $orderby);
+            return $this->respone(Defines::HTTP_OK, Defines::SUCCESS, $data);
+
+        } catch (\Exception $e) {
+            return $this->respone($e->getCode(), $e->getMessage());
+        }
+
+    }
+
+
+
+    /**
+     * 文章图片列表
+     *
+     * @route POST /getArticleImgList
+     * @param int $article_id {@v min:-1}
+     * @param int $page {@v min:1}
+     * @param int $pagesize {@v min:1|max:900}
+     * @return array
+     */
+    public function getArticleImgList($article_id, $page = 1, $pagesize = 10){
+        try {
+            $data = $this->article->getArticleImgList($page, $pagesize,$article_id);
+            return $this->respone(Defines::HTTP_OK, Defines::SUCCESS, $data);
+        } catch (\Exception $e) {
+            return $this->respone($e->getCode(), $e->getMessage());
+        }
+    }
+
+    /**
+     * 文章图片列表
+     *
+     * @route POST /addArticleQuantity
+     * @param int $article_id {@v min:-1}
+     * @return array
+     */
+    public function addArticleQuantity($article_id){
+        try {
+            $this->article->addArticleQuantity($article_id);
+            return $this->respone(Defines::HTTP_OK, Defines::SUCCESS);
+        } catch (\Exception $e) {
+            return $this->respone($e->getCode(), $e->getMessage());
+        }
+    }
+
+    /**
+     * 我的资讯页面
+     *
+     * @route POST /getMyArticleList
+     * @param int $uid {@v min:1}
+     * @param int $showstatus
+     * @param int $page {@v min:1}
+     * @param int $pagesize {@v min:1|max:100}
+     * @return array
+     */
+    public function getMyArticleList($uid, $showstatus = 1, $page = 1, $pagesize = 10) {
+        try {
+            $data = $this->article->getMyArticleList($uid, $showstatus, $page, $pagesize);
+            return $this->respone(Defines::HTTP_OK, Defines::SUCCESS, $data);
+        } catch (\Exception $e) {
+            return $this->respone($e->getCode(), $e->getMessage());
+        }
+    }
+
+    /**
+     * 点击添加选择分类
+     *
+     * @route POST /postCategoryChose
+     * @param int $uid {@v min:1}
+     * @param string $category_name
+     * @return array
+     */
+    public function postCategoryChose($uid, $category_name){
+        try {
+            $this->article->postCategoryChose($uid,$category_name);
+            return $this->respone(Defines::HTTP_OK, Defines::SUCCESS);
+        } catch (\Exception $e) {
+            return $this->respone($e->getCode(), $e->getMessage());
+        }
+    }
+
+    /**
+     * 查看是否已选择过分类
+     *
+     * @route POST /getCategoryChose
+     * @param int $uid {@v min:1}
+     * @return array
+     */
+    public function getCategoryChose($uid){
+        try {
+            $data = $this->article->getCategoryChose($uid);
+            return $this->respone(Defines::HTTP_OK, Defines::SUCCESS,$data);
+        } catch (\Exception $e) {
+            return $this->respone($e->getCode(), $e->getMessage());
+        }
+    }
+
+    /**
+     * 文章栏目列表
+     *
+     * @route POST /columnList
+     *
+     * @param string $relateType {@v required}
+     * @param string $name
+     * @param int $page {@v min:1}
+     * @param int $pagesize {@v min:1|max:100}
+     *
+     * @return array
+     */
+    public function columnList($relateType,$name = '',$page = 1, $pagesize = 10) {
+        $where = [];
+        try {
+            if(strlen($name)>0){
+                $where['t_column.name']= ['like'=>"%$name%"];
+            }
+            if(strlen($relateType)>0){
+                $where['t_column_relate.relate_type']= $relateType;
+            }
+            $data = $this->article->columnList($where,$page, $pagesize);
+            return $this->respone(Defines::HTTP_OK, Defines::SUCCESS, $data);
+        } catch (\Exception $e) {
+            return $this->respone($e->getCode(), $e->getMessage());
+            //
+        }
+    }
+
+    /**
+     * 主键id 寻找 文章/产品 栏目
+     *
+     * @route POST /getColumnById
+     *
+     * @param int $id {@v min:1}
+     * @param string $withCategory {@v lengthMin:1}
+     * @return array
+     */
+    public function getColumnById($id,$withCategory = '') {
+        try {
+            $data = $this->article->getColumnById($id,$withCategory);
+            return $this->respone(Defines::HTTP_OK, Defines::SUCCESS, $data);
+        } catch (\Exception $e) {
+            return $this->respone($e->getCode(), $e->getMessage());
+            //
+        }
+    }
+
+    /**
+     * 添加文章栏目
+     *
+     * @route POST /columnAdd
+     *
+     * @param string $name
+     * @param int $relateId {@v required|min:1}
+     * @param string $relateType {@v required}
+     * @param int $status {@v min:1}
+     * @return mixed
+     */
+    public function columnAdd($name = '', $relateId, $relateType, $status = 1) {
+        try {
+            $data = $this->article->columnAdd($name,$relateId,$relateType);
+            return $this->respone(Defines::HTTP_OK, Defines::SUCCESS, $data);
+        } catch (\Exception $e) {
+            return $this->respone($e->getCode(), $e->getMessage());
+        }
+    }
+
+    /**
+     * 编辑文章栏目
+     *
+     * @route POST /columnEdit
+     *
+     * @param int $id {@v min:1}
+     * @param string $name
+     * @param string $relateType {@v required}
+     * @param int $relateId {@v required|min:1}
+     * @param int $status {@v min:1}
+     * @return array
+     */
+    public function columnEdit($id, $name, $relateType, $relateId, $status = 1) {
+        try {
+            $data = $this->article->columnEdit($id,$name,$relateType,$relateId,$status);
+            return $this->respone(Defines::HTTP_OK, Defines::SUCCESS, $data);
+        } catch (\Exception $e) {
+            return $this->respone($e->getCode(), $e->getMessage());
+            //
+        }
+    }
 }
