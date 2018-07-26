@@ -2006,5 +2006,105 @@ class GoodsController
         return $order;
     }
 
+    /**
+     * @inject
+     * @var Container
+     */
+    protected $container;
+
+    /**
+     * 所有栏目列表 及下属所有产品 展示 前台展示
+     *
+     * @route GET /lite/article/columnListwithGoodList
+     * @param int $category_id {@v min:0}
+     * @param int $region_id {@v min:0}
+     * @param int $page {@v min:1}
+     * @param int $pagesize {@v min:1|max:100}
+     * @param int $column_id {@v min:1}
+     * @return array
+     */
+    public function columnListwithGoodList($category_id = 0,$region_id = 0, $page = 1, $pagesize = 10,$column_id=0) {
+        $articleController = $this->container->get(ArticleController::class);
+
+        return call_user_func_array([
+            $articleController,
+            __FUNCTION__
+        ], func_get_args());
+
+    }
+
+    /**
+     * 最热/最新 文章栏目 下的 文章列表 前台展示
+     *
+     * @route GET /lite/article/columnListwithArticleList
+     * @param int $category_id {@v min:0}
+     * @param int $page {@v min:1}
+     * @param int $region_id {@v min:0}
+     * @param int $pagesize {@v min:1|max:100}
+     * @param int $column_id {@v min:1}
+     * @return array
+     */
+    public function columnListwithArticleList($category_id = 0, $region_id = 0, $page = 1, $pagesize = 10,$column_id = 0) {
+        $articleController = $this->container->get(ArticleController::class);
+
+        return call_user_func_array([
+            $articleController,
+            __FUNCTION__
+        ], func_get_args());
+
+    }
+
+    /**
+     * 微信文章详情页
+     *
+     * @route GET /lite/article/getArticleDetailForWx1
+     * @param int $article_id {@v min:1}
+     * @return array
+     */
+    public function getArticleDetailForWx1($article_id) {
+        $articleController = $this->container->get(ArticleController::class);
+
+        return call_user_func_array([
+            $articleController,
+            __FUNCTION__
+        ], func_get_args());
+
+    }
+
+    /**
+     * 微信文章详情页
+     *
+     * @route GET /lite/article/getProductByArticleId
+     * @param int $article_id {@v required|min:1}
+     * @return array
+     */
+    public function getProductByArticleId($article_id) {
+        $articleController = $this->container->get(ArticleController::class);
+
+        return call_user_func_array([
+            $articleController,
+            __FUNCTION__
+        ], func_get_args());
+
+    }
+
+    /**
+     * 微信,pc,小程序 文章页面articleinfo 次数累计
+     * @route GET /lite/weixin/addArticleInfoViewQuantity
+     * @param string $article_id
+     * @param string $spread_id
+     * @param string $ip
+     * @param array $wxInfo
+     * @return array
+     */
+    public function addArticleInfoViewQuantity($article_id, $spread_id=0, $ip='',$wxInfo=[]){
+        $WeixinController = $this->container->get(WeixinController::class);
+
+        return call_user_func_array([
+            $WeixinController,
+            __FUNCTION__
+        ], func_get_args());
+    }
+
 
 }
